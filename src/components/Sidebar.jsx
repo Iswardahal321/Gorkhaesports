@@ -4,12 +4,11 @@ import {
   CSidebarBrand,
   CSidebarHeader,
   CSidebarNav,
-  CSidebarToggler,
   CNavItem,
   CNavTitle,
+  CIcon,
 } from '@coreui/react'
 
-import CIcon from '@coreui/icons-react'
 import {
   cilSpeedometer,
   cilPuzzle,
@@ -34,8 +33,8 @@ const Sidebar = () => {
       }
     }
 
-    if (visible) checkTeam()
-  }, [visible])
+    checkTeam()
+  }, [])
 
   return (
     <>
@@ -45,12 +44,12 @@ const Sidebar = () => {
           position: 'fixed',
           top: 20,
           left: 20,
-          zIndex: 1001,
-          backgroundColor: '#fff',
-          border: '1px solid #ccc',
+          zIndex: 2000,
+          backgroundColor: '#343a40',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '4px',
           padding: '8px 12px',
-          borderRadius: '5px',
-          cursor: 'pointer',
         }}
       >
         ☰
@@ -59,9 +58,9 @@ const Sidebar = () => {
       <CSidebar
         className="border-end"
         visible={visible}
-        onVisibleChange={setVisible}
-        unfoldable
+        onVisibleChange={(val) => setVisible(val)}
         overlaid
+        style={{ transition: 'transform 0.3s ease-in-out' }}
       >
         <CSidebarHeader className="border-bottom">
           <CSidebarBrand>Gorkha Esports</CSidebarBrand>
@@ -85,10 +84,6 @@ const Sidebar = () => {
             Scrims
           </CNavItem>
         </CSidebarNav>
-
-        <CSidebarHeader className="border-top">
-          <CSidebarToggler onClick={() => setVisible(false)} />
-        </CSidebarHeader>
       </CSidebar>
     </>
   )
