@@ -17,17 +17,18 @@ import JoinTournament from "./pages/JoinTournament.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import AdminTeams from "./pages/AdminTeams.jsx";
 
-// Guards
+// Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
+import Layout from "./components/Layout.jsx";
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
       setLoading(false);
     });
     return () => unsubscribe();
@@ -40,11 +41,14 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
+
         <Route
           path="/dashboard"
           element={
             <PrivateRoute>
-              <Dashboard />
+              <Layout>
+                <Dashboard />
+              </Layout>
             </PrivateRoute>
           }
         />
@@ -52,7 +56,9 @@ function App() {
           path="/add-team"
           element={
             <PrivateRoute>
-              <AddTeam />
+              <Layout>
+                <AddTeam />
+              </Layout>
             </PrivateRoute>
           }
         />
@@ -60,7 +66,9 @@ function App() {
           path="/join-tournament"
           element={
             <PrivateRoute>
-              <JoinTournament />
+              <Layout>
+                <JoinTournament />
+              </Layout>
             </PrivateRoute>
           }
         />
@@ -68,7 +76,9 @@ function App() {
           path="/admin"
           element={
             <AdminRoute>
-              <AdminPanel />
+              <Layout>
+                <AdminPanel />
+              </Layout>
             </AdminRoute>
           }
         />
@@ -76,7 +86,9 @@ function App() {
           path="/admin/teams"
           element={
             <AdminRoute>
-              <AdminTeams />
+              <Layout>
+                <AdminTeams />
+              </Layout>
             </AdminRoute>
           }
         />
