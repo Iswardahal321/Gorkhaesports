@@ -1,5 +1,6 @@
 // src/firebase/config.js
 import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -12,8 +13,8 @@ const firebaseConfig = {
   measurementId: "G-EP3YTR0JFG"
 };
 
-// ✅ Initialize and export app
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
+const auth = getAuth(app); // ✅ Added auth initialization
 
-export { app, analytics };
+export { app, analytics, auth }; // ✅ Now exporting auth too
