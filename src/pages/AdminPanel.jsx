@@ -6,21 +6,16 @@ function AdminPanel() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-6">
-      <h1 className="text-4xl font-bold mb-6">Admin Panel</h1>
-      <div className="flex gap-4">
+    <div className="min-h-screen p-6 bg-gray-100">
+      <h2 className="text-3xl font-bold mb-6">Admin Panel</h2>
+      <div className="space-y-4">
         <button
           onClick={() => navigate("/admin/teams")}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+          className="bg-blue-600 text-white px-6 py-3 rounded"
         >
           View All Teams
         </button>
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="bg-gray-700 text-white px-6 py-2 rounded hover:bg-gray-800"
-        >
-          Back to Dashboard
-        </button>
+        {/* Add more admin actions here if needed */}
       </div>
     </div>
   );
