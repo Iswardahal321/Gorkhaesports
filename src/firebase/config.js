@@ -1,6 +1,5 @@
 // src/firebase/config.js
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -10,11 +9,11 @@ const firebaseConfig = {
   storageBucket: "gorkhaesports-df740.appspot.com",
   messagingSenderId: "808274561434",
   appId: "1:808274561434:web:df2cbb39a93b232088d223",
-  measurementId: "G-EP3YTR0JFG",
+  measurementId: "G-EP3YTR0JFG"
 };
 
+// ✅ Initialize and export app
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const analytics = getAnalytics(app);
 
-export { auth, analytics };
+export { app, analytics };
