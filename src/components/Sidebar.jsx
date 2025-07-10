@@ -1,43 +1,78 @@
-// 📁 src/components/Sidebar.jsx
+import React, { useEffect, useState } from 'react'
+import {
+  CBadge,
+  CSidebar,
+  CSidebarBrand,
+  CSidebarHeader,
+  CSidebarNav,
+  CSidebarToggler,
+  CNavGroup,
+  CNavItem,
+  CNavTitle,
+} from '@coreui/react'
 
-import React from "react";
-import { Link } from "react-router-dom";
+import CIcon from '@coreui/icons-react'
+import {
+  cilCloudDownload,
+  cilLayers,
+  cilPuzzle,
+  cilSpeedometer,
+  cilUser,
+} from '@coreui/icons'
 
+import { Link } from 'react-router-dom'
+import { doc, getDoc } from 'firebase/firestore'
+import { auth, db } from '../firebase/config'
 
-const Sidebar = ({ isOpen }) => {
+const Sidebar = ({ visible, onToggle }) => {
+  const [hasTeam, setHasTeam] = useState(false)
+
+  useEffect(() => {
+    const checkTeam = async () => {
+      const user = auth.currentUser
+      if (user) {
+        const docRef = doc(db, 'teams', user.uid)
+        const docSnap = await getDoc(docRef)
+        setHasTeam(docSnap.exists())
+      }
+    }
+    checkTeam()
+  }, [])
+
   return (
-    <div
-      className={`fixed top-0 left-0 h-full w-64 bg-gray-900 text-white z-50 transform ${
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      } transition-transform duration-300 ease-in-out`}
+    <CSidebar
+      className="border-end"
+      visible={visible}
+      onVisibleChange={onToggle}
     >
-      <div className="p-4 font-bold text-lg border-b border-gray-700">
-        Gorkha Esports
-      </div>
-      <ul className="p-4 space-y-4">
-        <li>
-          <Link to="/dashboard" className="hover:text-yellow-400">
-            Dashboard
-          </Link>
-        </li>
-        <li>
-          <Link to="/add-team" className="hover:text-yellow-400">
-            Add Team
-          </Link>
-        </li>
-        <li>
-          <Link to="/my-team" className="hover:text-yellow-400">
-            My Team
-          </Link>
-        </li>
-        <li>
-          <Link to="/logout" className="hover:text-red-400">
-            Logout
-          </Link>
-        </li>
-      </ul>
-    </div>
-  );
-};
+      <CSidebarHeader className="border-bottom">
+        <CSidebarBrand>Gorkha Esports</CSidebarBrand>
+      </CSidebarHeader>
 
-export default Sidebar;
+      <CSidebarNav>
+        <CNavTitle>Dashboard</CNavTitle>
+
+        <CNavItem component={Link} to="/dashboard">
+          <CIcon customClassName="nav-icon" icon={cilSpeedometer} />
+          Dashboard
+        </CNavItem>
+
+        <CNavItem component={Link} to={hasTeam ? '/my-team' : '/add-team'}>
+          <CIcon customClassName="nav-icon" icon={cilUser} />
+          {hasTeam ? 'My Team' : 'Add Team'}
+        </CNavItem>
+
+        <CNavItem component={Link} to="/scrims">
+          <CIcon customClassName="nav-icon" icon={cilPuzzle} />
+          Scrims
+        </CNavItem>
+      </CSidebarNav>
+
+      <CSidebarHeader className="border-top">
+        <CSidebarToggler />
+      </CSidebarHeader>
+    </CSidebar>
+  )
+}
+
+export default Sidebar
