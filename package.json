@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@coreui/icons": "^3.0.0",
-    "@coreui/icons-react": "^3.0.0",
-    "@coreui/react": "^5.0.0",
+    "@coreui/icons": "^2.1.0",
+    "@coreui/icons-react": "^2.0.1",
+    "@coreui/react": "^5.1.0",
     "classnames": "^2.3.2",
     "firebase": "^10.11.0",
     "prop-types": "^15.8.1",
