@@ -1,8 +1,9 @@
+// 📁 src/pages/Register.jsx
 import React, { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore"; // ✅ Import this
+import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "../firebase/config"; // ✅ Ensure db is used
+import { auth, db } from "../firebase/config";
 
 function Register() {
   const [email, setEmail] = useState("");
@@ -18,19 +19,23 @@ function Register() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // ✅ Add user to Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        email: user.email,
-        role: "user",
-      });
-
-      navigate("/dashboard");
-    } catch (err) {
-      if (err.code === "auth/email-already-in-use") {
+      try {
+        await setDoc(doc(db, "users", user.uid), {
+          email: user.email,
+          role: "user",
+        });
+        navigate("/dashboard");
+      } catch (firestoreError) {
+        console.error("❌ Firestore Error:", firestoreError.message);
+        setError("User created, but failed to save in database.");
+      }
+      
+    } catch (authError) {
+      if (authError.code === "auth/email-already-in-use") {
         setError("This email is already registered. Try logging in.");
-      } else if (err.code === "auth/invalid-email") {
+      } else if (authError.code === "auth/invalid-email") {
         setError("Invalid email address.");
-      } else if (err.code === "auth/weak-password") {
+      } else if (authError.code === "auth/weak-password") {
         setError("Password should be at least 6 characters.");
       } else {
         setError("Registration failed. Try again.");
