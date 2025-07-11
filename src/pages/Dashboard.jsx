@@ -2,22 +2,26 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
+import "./Dashboard.css"; // Make sure this exists
 
 const Dashboard = () => {
   const [tournaments, setTournaments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "games"));
+        const snapshot = await getDocs(collection(db, "tournaments"));
         const data = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
         setTournaments(data);
+        setLoading(false);
       } catch (err) {
         console.error("Error fetching tournaments:", err);
+        setLoading(false);
       }
     };
 
@@ -28,47 +32,55 @@ const Dashboard = () => {
     navigate(`/payment/${type}/${id}`);
   };
 
+  const toggleCard = (index) => {
+    setTournaments((prev) =>
+      prev.map((t, i) =>
+        i === index ? { ...t, active: !t.active } : { ...t, active: false }
+      )
+    );
+  };
+
   return (
     <div className="p-4 w-full bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-bold mb-6">🎮 Live Tournaments</h1>
+      <h1 className="text-3xl font-bold text-center mb-6">🎯 Live Tournaments</h1>
 
-      {tournaments.length === 0 ? (
-        <p className="text-gray-600">No tournaments found.</p>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center mt-20">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-yellow-500 border-solid mb-4"></div>
+          <p className="text-gray-600 font-medium text-lg">Loading tournament details...</p>
+        </div>
+      ) : tournaments.length === 0 ? (
+        <p className="text-center text-gray-600 text-lg">No tournaments found.</p>
       ) : (
         <div className="flex flex-wrap justify-center gap-6">
-          {tournaments.map((tourney, idx) => (
+          {tournaments.map((tourney, index) => (
             <div
-              key={idx}
-              className="cardContainer relative w-[300px] h-[400px] perspective"
-              onClick={(e) =>
-                e.currentTarget
-                  .querySelector(".card")
-                  .classList.toggle("active")
-              }
+              key={tourney.id}
+              className={`cardContainer ${tourney.active ? "active" : ""}`}
+              onClick={() => toggleCard(index)}
             >
-              <div className="card w-full h-full transition-transform duration-500 transform-style preserve-3d">
-                {/* Front Side */}
-                <div className="side front absolute w-full h-full backface-hidden bg-white rounded shadow-md">
-                  <div className="h-[250px] bg-gray-300 rounded-t" />
-                  <div className="p-4">
-                    <h2 className="text-xl font-bold text-gray-800 uppercase">
-                      {tourney.type}
+              <div className={`card ${tourney.active ? "active" : ""}`}>
+                <div className="side front">
+                  <div className={`img img${(index % 3) + 1}`}></div>
+                  <div className="info p-4">
+                    <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                      {tourney.type === "daily" ? "Daily Scrim" : "Weekly War"}
                     </h2>
-                    <p className="text-gray-700 mt-2">💰 Entry Fee: ₹{tourney.fee}</p>
+                    <p className="text-gray-600">💰 Entry Fee: ₹{tourney.fee}</p>
                   </div>
                 </div>
 
-                {/* Back Side */}
-                <div className="side back absolute w-full h-full backface-hidden rotate-y-180 bg-white rounded shadow-md flex flex-col justify-between p-4">
+                <div className="side back">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-800 mb-2 uppercase">
-                      {tourney.type}
-                    </h2>
-                    <p className="text-gray-700">{tourney.description}</p>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Tournament Details</h2>
+                    <p className="text-gray-700 mb-4">{tourney.description}</p>
                   </div>
                   <div className="btn-wrapper flex justify-center mt-4">
                     <button
-                      onClick={() => handleJoin(tourney.type, tourney.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleJoin(tourney.type, tourney.id);
+                      }}
                       className="bg-yellow-500 text-white font-bold py-2 px-6 rounded hover:bg-yellow-600 transition duration-300"
                     >
                       Join Now
