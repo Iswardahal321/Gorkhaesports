@@ -9,6 +9,7 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase/config";
 
+
 // Pages
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
