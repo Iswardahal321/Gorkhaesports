@@ -1,3 +1,4 @@
+// src/components/AdminRoute.jsx
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
@@ -11,11 +12,15 @@ function AdminRoute({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userRef = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
-        const role = userSnap.exists() ? userSnap.data().role : null;
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const userSnap = await getDoc(userRef);
 
-        if (role === "admin") setIsAdmin(true);
+          const role = userSnap.exists() ? userSnap.data().role : null;
+          setIsAdmin(role === "admin");
+        } catch (error) {
+          console.error("❌ Error fetching role:", error);
+        }
       }
       setLoading(false);
     });
