@@ -1,24 +1,21 @@
-// 📁 src/components/AdminRoute.jsx
-
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { onAuthStateChanged, getAuth } from "firebase/auth";
-import { app } from "../firebase/config";
-import { ADMIN_EMAILS } from "../constants/admins"; // ✅ Import admin emails list
-
-
-const auth = getAuth(app);
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebase/config";
 
 function AdminRoute({ children }) {
-  const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser && ADMIN_EMAILS.includes(currentUser.email)) {
-        setUser(currentUser); // ✅ Allow if in ADMIN_EMAILS list
-      } else {
-        setUser(null); // ❌ Not allowed
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        const role = userSnap.exists() ? userSnap.data().role : null;
+
+        if (role === "admin") setIsAdmin(true);
       }
       setLoading(false);
     });
@@ -26,9 +23,9 @@ function AdminRoute({ children }) {
     return () => unsubscribe();
   }, []);
 
-  if (loading) return <p className="text-center mt-10">Checking Admin Access...</p>;
+  if (loading) return <p>Loading...</p>;
 
-  return user ? children : <Navigate to="/login" replace />;
+  return isAdmin ? children : <Navigate to="/" />;
 }
 
 export default AdminRoute;
