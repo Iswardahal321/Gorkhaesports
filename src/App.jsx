@@ -19,13 +19,14 @@ import AdminPanel from "./pages/AdminPanel.jsx";
 import AdminTeams from "./pages/AdminTeams.jsx";
 import SlotList from "./pages/SlotList.jsx";
 import AddSlot from "./pages/AddSlot.jsx";
-import AddGame from "./pages/AddGame.jsx"; // ✅ NEW IMPORT
+import AddGame from "./pages/AddGame.jsx";
+import AdminUsers from "./pages/AdminUsers.jsx"; // ✅ NEW
 
 // Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
 import Layout from "./components/Layout.jsx";
-import AdminLayout from "./components/AdminLayout.jsx"; // ✅
+import AdminLayout from "./components/AdminLayout.jsx";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -89,7 +90,7 @@ function App() {
           }
         />
 
-        {/* ✅ Admin Protected Routes with AdminLayout */}
+        {/* Admin Protected Routes */}
         <Route
           path="/admin"
           element={
@@ -126,6 +127,16 @@ function App() {
             <AdminRoute>
               <AdminLayout>
                 <AddGame />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <AdminUsers />
               </AdminLayout>
             </AdminRoute>
           }
