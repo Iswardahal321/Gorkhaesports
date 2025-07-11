@@ -2,15 +2,14 @@ import React from "react";
 import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import SmartToyIcon from "@mui/icons-material/SmartToy"; // demo icon
+import ListAltIcon from "@mui/icons-material/ListAlt"; // slot list icon
 import { useLocation, useNavigate } from "react-router-dom";
 
 function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // 🔁 Corrected route
-  const routes = ["/add-team", "/dashboard", "/demo"];
+  const routes = ["/add-team", "/dashboard", "/slot-list"];
   const currentTab = routes.indexOf(location.pathname);
 
   const handleChange = (event, newValue) => {
@@ -36,7 +35,7 @@ function BottomNav() {
       >
         <BottomNavigationAction label="Team" icon={<GroupAddIcon />} />
         <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} />
-        <BottomNavigationAction label="Demo" icon={<SmartToyIcon />} />
+        <BottomNavigationAction label="Slot List" icon={<ListAltIcon />} />
       </BottomNavigation>
     </Paper>
   );
