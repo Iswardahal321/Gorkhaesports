@@ -6,6 +6,7 @@ import { onAuthStateChanged, getAuth } from "firebase/auth";
 import { app } from "../firebase/config";
 import { ADMIN_EMAILS } from "../constants/admins"; // ✅ Import admin emails list
 
+
 const auth = getAuth(app);
 
 function AdminRoute({ children }) {
