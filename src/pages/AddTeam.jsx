@@ -1,124 +1,171 @@
-// src/pages/AddTeam.jsx
 import React, { useState, useEffect } from "react";
-import { addDoc, collection, doc, getDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  getDoc,
+  doc,
+  query,
+  where,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
 import { db, auth } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
 
 function AddTeam() {
   const [teamName, setTeamName] = useState("");
   const [players, setPlayers] = useState([""]);
-  const [error, setError] = useState("");
-  const [userMobile, setUserMobile] = useState(null);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [existingTeamId, setExistingTeamId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchTeam = async () => {
       const currentUser = auth.currentUser;
-      if (currentUser) {
-        const userRef = doc(db, "users", currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          setUserMobile(userData.mobile || null);
-        }
+      if (!currentUser) return;
+
+      const q = query(
+        collection(db, "teams"),
+        where("leaderEmail", "==", currentUser.email)
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const docData = snap.docs[0];
+        setExistingTeamId(docData.id);
+        const data = docData.data();
+        setTeamName(data.teamName || "");
+        setPlayers(data.players || [""]);
       }
     };
-    fetchUserData();
+
+    fetchTeam();
   }, []);
 
   const handleAddPlayer = () => {
-    if (players.length >= 5) {
-      setError("❌ Max 5 players allowed.");
-      return;
-    }
     setPlayers([...players, ""]);
-    setError("");
   };
 
   const handlePlayerChange = (index, value) => {
-    const updated = [...players];
-    updated[index] = value;
-    setPlayers(updated);
+    const updatedPlayers = [...players];
+    updatedPlayers[index] = value;
+    setPlayers(updatedPlayers);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setMessage("");
+    setLoading(true);
+
     const currentUser = auth.currentUser;
-
-    if (!currentUser) return alert("Not authenticated");
-
-    if (!userMobile) {
-      setError("❌ Please add your mobile number first in the profile section.");
+    if (!currentUser) {
+      setMessage("❌ Not authenticated");
+      setLoading(false);
       return;
     }
 
-    if (!teamName.trim() || players.some((p) => p.trim() === "")) {
-      setError("❌ Fill in all fields.");
+    const userDocRef = doc(db, "users", currentUser.uid);
+    const userSnap = await getDoc(userDocRef);
+    const mobile = userSnap.data()?.mobile;
+
+    if (!mobile) {
+      setMessage("❌ Please add your mobile number first from Profile section.");
+      setLoading(false);
+      return;
+    }
+
+    if (players.some((p) => p.trim() === "")) {
+      setMessage("❌ Please fill all player names before submitting.");
+      setLoading(false);
       return;
     }
 
     try {
-      await addDoc(collection(db, "teams"), {
+      const teamData = {
         teamName,
         players,
         leaderEmail: currentUser.email,
         leaderName: currentUser.displayName || "Anonymous",
         createdAt: new Date(),
-      });
-      navigate("/dashboard");
-    } catch (err) {
-      console.error("Error adding team:", err);
-      setError("❌ Failed to add team.");
+      };
+
+      if (existingTeamId) {
+        // Update team
+        const teamRef = doc(db, "teams", existingTeamId);
+        await updateDoc(teamRef, teamData);
+        setMessage("✅ Team updated successfully!");
+      } else {
+        // Add new team
+        await addDoc(collection(db, "teams"), teamData);
+        setMessage("✅ Team added successfully!");
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage("❌ Failed to save team.");
     }
+
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen px-4 py-8 bg-gray-50">
-      <div className="max-w-xl mx-auto bg-white p-6 rounded shadow">
-        <h2 className="text-2xl font-bold mb-6 text-center text-blue-700">🛡️ Create Your Team</h2>
+    <div className="min-h-screen p-6 bg-white">
+      <h2 className="text-2xl font-semibold mb-4">
+        {existingTeamId ? "Update Your Team" : "Add Team"}
+      </h2>
+      <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
+        <input
+          type="text"
+          placeholder="Team Name"
+          className="border px-4 py-2 w-full"
+          value={teamName}
+          onChange={(e) => setTeamName(e.target.value)}
+          required
+        />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Enter Team Name"
-            className="w-full border px-4 py-2 rounded focus:outline-none focus:ring focus:border-blue-500"
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
-            required
-          />
-
+        <div className="space-y-2">
           {players.map((player, index) => (
             <input
               key={index}
               type="text"
               placeholder={`Player ${index + 1} Name`}
-              className="w-full border px-4 py-2 rounded focus:outline-none focus:ring focus:border-blue-400"
+              className="border px-4 py-2 w-full"
               value={player}
               onChange={(e) => handlePlayerChange(index, e.target.value)}
               required
             />
           ))}
+        </div>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+        <button
+          type="button"
+          onClick={handleAddPlayer}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+        >
+          + Add Player
+        </button>
 
-          {players.length < 5 && (
-            <button
-              type="button"
-              onClick={handleAddPlayer}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
-            >
-              ➕ Add Player
-            </button>
-          )}
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-green-600 text-white px-6 py-2 rounded"
+        >
+          {loading
+            ? "Saving..."
+            : existingTeamId
+            ? "Update Team"
+            : "Submit Team"}
+        </button>
 
-          <button
-            type="submit"
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded font-semibold"
+        {message && (
+          <p
+            className={`text-sm ${
+              message.includes("✅") ? "text-green-600" : "text-red-500"
+            }`}
           >
-            🚀 Submit Team
-          </button>
-        </form>
-      </div>
+            {message}
+          </p>
+        )}
+      </form>
     </div>
   );
 }
