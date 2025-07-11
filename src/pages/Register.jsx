@@ -1,15 +1,13 @@
-// src/pages/Register.jsx
 import React, { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore"; // ✅ Import this
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "../firebase/config";
-import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../firebase/config"; // ✅ Ensure db is used
 
 function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
@@ -17,10 +15,10 @@ function Register() {
     setError("");
 
     try {
-      const userCred = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCred.user;
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-      // 🔥 Save user to Firestore with role: "user"
+      // ✅ Add user to Firestore
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         role: "user",
