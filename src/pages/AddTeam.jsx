@@ -1,6 +1,6 @@
 // src/pages/AddTeam.jsx
-import React, { useState } from "react";
-import { addDoc, collection } from "firebase/firestore";
+import React, { useState, useEffect } from "react";
+import { addDoc, collection, doc, getDoc } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
 
@@ -8,7 +8,23 @@ function AddTeam() {
   const [teamName, setTeamName] = useState("");
   const [players, setPlayers] = useState([""]);
   const [error, setError] = useState("");
+  const [userMobile, setUserMobile] = useState(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          setUserMobile(userData.mobile || null);
+        }
+      }
+    };
+    fetchUserData();
+  }, []);
 
   const handleAddPlayer = () => {
     if (players.length >= 5) {
@@ -28,7 +44,13 @@ function AddTeam() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const currentUser = auth.currentUser;
-    if (!currentUser) return alert("User not authenticated!");
+
+    if (!currentUser) return alert("Not authenticated");
+
+    if (!userMobile) {
+      setError("❌ Please add your mobile number first in the profile section.");
+      return;
+    }
 
     if (!teamName.trim() || players.some((p) => p.trim() === "")) {
       setError("❌ Fill in all fields.");
