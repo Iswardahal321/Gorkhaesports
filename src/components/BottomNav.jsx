@@ -9,7 +9,8 @@ function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const routes = ["/team", "/dashboard", "/demo"];
+  // 🔁 Corrected route
+  const routes = ["/add-team", "/dashboard", "/demo"];
   const currentTab = routes.indexOf(location.pathname);
 
   const handleChange = (event, newValue) => {
