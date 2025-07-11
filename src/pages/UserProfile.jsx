@@ -6,19 +6,16 @@ const UserProfile = () => {
   const email = user?.email || "No Email";
   const uid = user?.uid || "No UID";
 
-  // Dummy slot number (replace this with real logic later)
-  const slotNumber = "Coming Soon"; // 🔁 You can replace this logic later
+  // ✅ Slot logic (Firebase custom claim se)
+  const slotNumber = user?.customClaims?.slot || "Not assigned yet";
 
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  const togglePhoneModal = () => setShowPhoneModal((prev) => !prev);
-  const togglePasswordModal = () => setShowPasswordModal((prev) => !prev);
-
   const userInitial = email.charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
+    <div className="min-h-screen bg-gray-100 p-4 relative">
       <div className="max-w-md mx-auto bg-white shadow-md rounded-md p-6">
         <div className="flex items-center justify-center mb-4">
           <div className="w-16 h-16 bg-yellow-500 text-white rounded-full flex items-center justify-center text-2xl font-bold">
@@ -45,7 +42,10 @@ const UserProfile = () => {
             {user.phoneNumber || "Not added"}
           </p>
           <button
-            onClick={togglePhoneModal}
+            onClick={() => {
+              setShowPhoneModal(true);
+              setShowPasswordModal(false);
+            }}
             className="mt-2 bg-blue-600 text-white px-4 py-2 text-sm rounded hover:bg-blue-700"
           >
             {user.phoneNumber ? "Update Number" : "Add Phone Number"}
@@ -54,7 +54,10 @@ const UserProfile = () => {
 
         <div>
           <button
-            onClick={togglePasswordModal}
+            onClick={() => {
+              setShowPasswordModal(true);
+              setShowPhoneModal(false);
+            }}
             className="bg-red-500 text-white px-4 py-2 text-sm rounded hover:bg-red-600"
           >
             Change Password
@@ -62,11 +65,11 @@ const UserProfile = () => {
         </div>
       </div>
 
-      {/* 📱 Phone Modal */}
+      {/* ✅ Phone Modal */}
       {showPhoneModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
-          onClick={togglePhoneModal}
+          onClick={() => setShowPhoneModal(false)}
         >
           <div
             className="bg-white p-6 rounded shadow-md w-[90%] max-w-sm"
@@ -81,7 +84,7 @@ const UserProfile = () => {
             <div className="flex justify-end gap-2">
               <button
                 className="bg-gray-300 px-4 py-2 rounded"
-                onClick={togglePhoneModal}
+                onClick={() => setShowPhoneModal(false)}
               >
                 Cancel
               </button>
@@ -93,11 +96,11 @@ const UserProfile = () => {
         </div>
       )}
 
-      {/* 🔒 Password Modal */}
+      {/* ✅ Password Modal */}
       {showPasswordModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
-          onClick={togglePasswordModal}
+          onClick={() => setShowPasswordModal(false)}
         >
           <div
             className="bg-white p-6 rounded shadow-md w-[90%] max-w-sm"
@@ -112,7 +115,7 @@ const UserProfile = () => {
             <div className="flex justify-end gap-2">
               <button
                 className="bg-gray-300 px-4 py-2 rounded"
-                onClick={togglePasswordModal}
+                onClick={() => setShowPasswordModal(false)}
               >
                 Cancel
               </button>
