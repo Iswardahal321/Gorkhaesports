@@ -16,7 +16,8 @@ import AddTeam from "./pages/AddTeam.jsx";
 import JoinTournament from "./pages/JoinTournament.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import AdminTeams from "./pages/AdminTeams.jsx";
-import SlotList from "./pages/SlotList.jsx"; // ✅ NEW
+import SlotList from "./pages/SlotList.jsx";
+import AddSlot from "./pages/AddSlot.jsx"; // ✅ NEW IMPORT
 
 // Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -102,6 +103,16 @@ function App() {
             <AdminRoute>
               <Layout>
                 <AdminTeams />
+              </Layout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/add-slot"
+          element={
+            <AdminRoute>
+              <Layout>
+                <AddSlot />
               </Layout>
             </AdminRoute>
           }
