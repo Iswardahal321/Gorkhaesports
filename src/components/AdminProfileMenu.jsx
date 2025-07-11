@@ -1,131 +1,128 @@
-// src/components/AdminProfileModal.jsx
 import React, { useState } from "react";
 import {
-  Avatar,
-  Button,
-  Modal,
+  Menu,
+  MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
   TextField,
-  Typography,
-  Box,
+  DialogActions,
+  Button,
 } from "@mui/material";
-import { signOut, updatePassword } from "firebase/auth";
-import { auth } from "../firebase/config";
+import Avatar from "@mui/material/Avatar";
 import { useNavigate } from "react-router-dom";
+import {
+  signOut,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from "firebase/auth";
+import { auth } from "../firebase/config";
 
-const modalStyle = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: 360,
-  bgcolor: "background.paper",
-  borderRadius: 2,
-  boxShadow: 24,
-  p: 4,
-};
-
-const AdminProfileModal = ({ user }) => {
-  const [open, setOpen] = useState(false);
+const AdminProfileMenu = ({ user }) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  const handleOpen = () => {
-    setOpen(true);
-    setMessage("");
-  };
-  const handleClose = () => {
-    setOpen(false);
-    setNewPassword("");
-    setMessage("");
-  };
+  const handleOpen = (event) => setAnchorEl(event.currentTarget);
+  const handleClose = () => setAnchorEl(null);
 
   const handleLogout = async () => {
     await signOut(auth);
     navigate("/");
   };
 
-  const handlePasswordUpdate = async () => {
+  const handlePasswordChange = async () => {
+    setMessage("");
+
+    const userAuth = auth.currentUser;
+    const credential = EmailAuthProvider.credential(userAuth.email, currentPassword);
+
     try {
-      if (newPassword.length < 6) {
-        setMessage("❌ Password must be at least 6 characters.");
-        return;
-      }
-      await updatePassword(auth.currentUser, newPassword);
+      // 🔁 Reauthenticate
+      await reauthenticateWithCredential(userAuth, credential);
+
+      // 🔐 Update Password
+      await updatePassword(userAuth, newPassword);
       setMessage("✅ Password updated successfully.");
+      setOpenDialog(false);
+      setCurrentPassword("");
       setNewPassword("");
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Failed to update password.");
+    } catch (error) {
+      console.error(error);
+      setMessage("❌ Failed to update password. Check current password.");
     }
   };
 
   return (
-    <div className="absolute top-4 right-4 z-50">
-      <Avatar
-        onClick={handleOpen}
-        sx={{
-          cursor: "pointer",
-          bgcolor: "#1976d2",
-          border: "2px solid white",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-        }}
-      >
+    <div className="absolute top-4 right-4">
+      <Avatar onClick={handleOpen} sx={{ cursor: "pointer", bgcolor: "#1976d2" }}>
         {user?.email?.charAt(0)?.toUpperCase() || "A"}
       </Avatar>
 
-      <Modal open={open} onClose={handleClose}>
-        <Box sx={modalStyle}>
-          <Typography variant="h6" fontWeight={600} mb={2}>
-            👤 Admin Profile
-          </Typography>
-          <Typography variant="body2" gutterBottom>
-            <strong>Email:</strong> {user?.email}
-          </Typography>
-          <Typography variant="body2" gutterBottom>
-            <strong>Role:</strong> Admin
-          </Typography>
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}>
+        <MenuItem disabled>
+          <strong>Email:</strong>&nbsp; {user?.email}
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setOpenDialog(true);
+            handleClose();
+          }}
+        >
+          🔒 Change Password
+        </MenuItem>
+        <MenuItem onClick={handleLogout} sx={{ color: "red" }}>
+          🔓 Logout
+        </MenuItem>
+      </Menu>
 
+      {/* 🔐 Password Dialog */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+        <DialogTitle>Change Password</DialogTitle>
+        <DialogContent>
           <TextField
-            fullWidth
-            label="New Password"
             type="password"
-            variant="outlined"
-            size="small"
+            label="Current Password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+          <TextField
+            type="password"
+            label="New Password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            sx={{ mt: 2 }}
+            fullWidth
+            margin="normal"
           />
           {message && (
-            <Typography
-              variant="body2"
-              sx={{ mt: 1, color: message.includes("✅") ? "green" : "red" }}
+            <p
+              className={`text-sm ${
+                message.includes("✅") ? "text-green-600" : "text-red-500"
+              }`}
             >
               {message}
-            </Typography>
+            </p>
           )}
-          <div className="flex justify-between mt-4 gap-2">
-            <Button
-              onClick={handlePasswordUpdate}
-              variant="contained"
-              color="primary"
-              fullWidth
-            >
-              Update Password
-            </Button>
-            <Button
-              onClick={handleLogout}
-              variant="outlined"
-              color="error"
-              fullWidth
-            >
-              Logout
-            </Button>
-          </div>
-        </Box>
-      </Modal>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handlePasswordChange}
+            disabled={!currentPassword || !newPassword}
+          >
+            Update
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };
 
-export default AdminProfileModal;
+export default AdminProfileMenu;
