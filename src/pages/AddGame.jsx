@@ -2,12 +2,12 @@
 import React, { useEffect, useState } from "react";
 import {
   collection,
-  query,
-  where,
   getDocs,
   setDoc,
   doc,
   serverTimestamp,
+  query,
+  limit
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
@@ -16,32 +16,45 @@ function AddGame() {
   const [gameType, setGameType] = useState("Weekly War");
   const [fee, setFee] = useState("");
   const [description, setDescription] = useState("");
+  const [docId, setDocId] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [docId, setDocId] = useState(""); // To track existing doc ID if found
 
   const navigate = useNavigate();
 
-  // ✅ Auto-fetch game on load
+  const getCollectionName = () => {
+    return gameType === "Weekly War" ? "games_weekly" : "games_daily";
+  };
+
+  // ✅ Auto-fetch data on gameType change
   useEffect(() => {
-    const fetchGame = async () => {
+    const fetchData = async () => {
+      setError("");
+      setSuccess("");
       try {
-        const q = query(collection(db, "games"), where("gameType", "==", gameType));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const data = querySnapshot.docs[0].data();
-          setDocId(querySnapshot.docs[0].id);
+        const colRef = collection(db, getCollectionName());
+        const q = query(colRef, limit(1)); // Fetch only latest one
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data();
+          setDocId(snapshot.docs[0].id);
           setFee(data.fee || "");
           setDescription(data.description || "");
+        } else {
+          setDocId(""); // No existing document
+          setFee("");
+          setDescription("");
         }
       } catch (err) {
-        console.error("Error fetching game:", err);
+        console.error(err);
+        setError("Failed to load game data.");
       }
     };
 
-    fetchGame();
+    fetchData();
   }, [gameType]);
 
+  // ✅ Save or Update game
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -52,31 +65,31 @@ function AddGame() {
       return;
     }
 
+    const gameData = {
+      gameType,
+      fee,
+      description,
+      updatedAt: serverTimestamp(),
+    };
+
     try {
-      const data = {
-        gameType,
-        fee,
-        description,
-        updatedAt: serverTimestamp(),
-      };
+      const colRef = collection(db, getCollectionName());
 
       if (docId) {
-        // ✅ Update if exists
-        await setDoc(doc(db, "games", docId), data, { merge: true });
+        await setDoc(doc(db, getCollectionName(), docId), gameData, { merge: true });
         setSuccess("Game updated successfully.");
       } else {
-        // ✅ Add new if not exists
-        const newRef = doc(collection(db, "games"));
-        await setDoc(newRef, {
-          ...data,
+        const newDoc = doc(colRef);
+        await setDoc(newDoc, {
+          ...gameData,
           createdAt: serverTimestamp(),
         });
+        setDocId(newDoc.id);
         setSuccess("Game added successfully.");
-        setDocId(newRef.id); // Set new docId for later updates
       }
     } catch (err) {
       console.error(err);
-      setError("Failed to add or update game. Try again.");
+      setError("Failed to save game.");
     }
   };
 
