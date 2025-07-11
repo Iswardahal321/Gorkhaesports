@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
@@ -8,7 +7,6 @@ import {
 } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase/config";
-
 
 // Pages
 import Login from "./pages/Login.jsx";
@@ -22,7 +20,8 @@ import SlotList from "./pages/SlotList.jsx";
 import AddSlot from "./pages/AddSlot.jsx";
 import AddGame from "./pages/AddGame.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
-import UploadResult from "./pages/UploadResult.jsx"; // ✅ NEW
+import UploadResult from "./pages/UploadResult.jsx";
+import UserProfile from "./pages/UserProfile.jsx"; // ✅ Added
 
 // Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -91,6 +90,16 @@ function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <UserProfile />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
 
         {/* ✅ Admin Protected Routes */}
         <Route
@@ -154,6 +163,7 @@ function App() {
           }
         />
 
+        {/* Redirect any unknown route to login */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
