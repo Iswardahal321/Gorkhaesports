@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { auth } from "../firebase/config";
-import { updateProfile } from "firebase/auth";
 
 const UserProfile = () => {
   const user = auth.currentUser;
   const email = user?.email || "No Email";
   const uid = user?.uid || "No UID";
+
+  // Dummy slot number (replace this with real logic later)
+  const slotNumber = "Coming Soon"; // 🔁 You can replace this logic later
+
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  const togglePhoneModal = () => setShowPhoneModal(!showPhoneModal);
-  const togglePasswordModal = () => setShowPasswordModal(!showPasswordModal);
+  const togglePhoneModal = () => setShowPhoneModal((prev) => !prev);
+  const togglePasswordModal = () => setShowPasswordModal((prev) => !prev);
 
   const userInitial = email.charAt(0).toUpperCase();
 
@@ -26,9 +29,14 @@ const UserProfile = () => {
         <h2 className="text-xl text-center font-bold mb-2">Gorkha Esports</h2>
         <p className="text-center text-gray-600 mb-4">{email}</p>
 
-        <div className="mb-4">
+        <div className="mb-3">
           <p className="text-sm text-gray-700 font-semibold mb-1">UID:</p>
           <p className="text-sm bg-gray-100 rounded px-3 py-1">{uid}</p>
+        </div>
+
+        <div className="mb-3">
+          <p className="text-sm text-gray-700 font-semibold mb-1">Slot Number:</p>
+          <p className="text-sm bg-gray-100 rounded px-3 py-1">{slotNumber}</p>
         </div>
 
         <div className="mb-4">
@@ -54,10 +62,16 @@ const UserProfile = () => {
         </div>
       </div>
 
-      {/* Phone Modal */}
+      {/* 📱 Phone Modal */}
       {showPhoneModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-md w-[90%] max-w-sm">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+          onClick={togglePhoneModal}
+        >
+          <div
+            className="bg-white p-6 rounded shadow-md w-[90%] max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className="text-lg font-semibold mb-4">Add / Update Phone</h2>
             <input
               type="tel"
@@ -79,10 +93,16 @@ const UserProfile = () => {
         </div>
       )}
 
-      {/* Password Modal */}
+      {/* 🔒 Password Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-md w-[90%] max-w-sm">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+          onClick={togglePasswordModal}
+        >
+          <div
+            className="bg-white p-6 rounded shadow-md w-[90%] max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className="text-lg font-semibold mb-4">Change Password</h2>
             <input
               type="password"
