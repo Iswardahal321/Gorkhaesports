@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
-import "./dashboard.css"; // ✅ Custom flip card styles
+import "./dashboard.css"; // ✅Custom flip card styles
 
 const Dashboard = () => {
   const [games, setGames] = useState([]);
@@ -20,6 +20,7 @@ const Dashboard = () => {
         ...doc.data(),
       }));
 
+      
       const weeklyGames = weeklySnap.docs.map((doc) => ({
         id: doc.id,
         type: "Weekly War",
