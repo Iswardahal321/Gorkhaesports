@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
-import "./dashboard.css"; // ✅Custom flip card style
+import "./dashboard.css"; // ✅Custom flip card stylessss
 
 const Dashboard = () => {
   const [games, setGames] = useState([]);
