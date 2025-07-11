@@ -16,6 +16,7 @@ import AddTeam from "./pages/AddTeam.jsx";
 import JoinTournament from "./pages/JoinTournament.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import AdminTeams from "./pages/AdminTeams.jsx";
+import SlotList from "./pages/SlotList.jsx"; // ✅ NEW
 
 // Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -42,7 +43,7 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* User Protected Routes with BottomNav Layout */}
+        {/* User Protected Routes */}
         <Route
           path="/dashboard"
           element={
@@ -73,8 +74,18 @@ function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/slot-list"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <SlotList />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
 
-        {/* Admin Protected Routes with BottomNav Layout */}
+        {/* Admin Protected Routes */}
         <Route
           path="/admin"
           element={
