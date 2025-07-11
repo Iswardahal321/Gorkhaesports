@@ -9,7 +9,6 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase/config";
 
-
 // Pages
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
@@ -21,7 +20,8 @@ import AdminTeams from "./pages/AdminTeams.jsx";
 import SlotList from "./pages/SlotList.jsx";
 import AddSlot from "./pages/AddSlot.jsx";
 import AddGame from "./pages/AddGame.jsx";
-import AdminUsers from "./pages/AdminUsers.jsx"; // ✅ NEW
+import AdminUsers from "./pages/AdminUsers.jsx";
+import UploadResult from "./pages/UploadResult.jsx"; // ✅ NEW
 
 // Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -49,7 +49,7 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* User Protected Routes */}
+        {/* ✅ User Protected Routes */}
         <Route
           path="/dashboard"
           element={
@@ -91,7 +91,7 @@ function App() {
           }
         />
 
-        {/* Admin Protected Routes */}
+        {/* ✅ Admin Protected Routes */}
         <Route
           path="/admin"
           element={
@@ -138,6 +138,16 @@ function App() {
             <AdminRoute>
               <AdminLayout>
                 <AdminUsers />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/upload-result"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <UploadResult />
               </AdminLayout>
             </AdminRoute>
           }
