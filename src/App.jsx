@@ -19,12 +19,13 @@ import AdminPanel from "./pages/AdminPanel.jsx";
 import AdminTeams from "./pages/AdminTeams.jsx";
 import SlotList from "./pages/SlotList.jsx";
 import AddSlot from "./pages/AddSlot.jsx";
+import AddGame from "./pages/AddGame.jsx"; // ✅ NEW IMPORT
 
 // Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
 import Layout from "./components/Layout.jsx";
-import AdminLayout from "./components/AdminLayout.jsx"; // ✅ NEW
+import AdminLayout from "./components/AdminLayout.jsx"; // ✅
 
 function App() {
   const [user, setUser] = useState(null);
@@ -115,6 +116,16 @@ function App() {
             <AdminRoute>
               <AdminLayout>
                 <AddSlot />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/add-game"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <AddGame />
               </AdminLayout>
             </AdminRoute>
           }
