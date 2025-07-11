@@ -1,4 +1,5 @@
 // src/components/AdminBottomNav.jsx
+
 import React from "react";
 import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -17,10 +18,11 @@ function AdminBottomNav() {
     "/admin/users",
     "/admin/add-game",
     "/admin/add-slot",
-    "/admin/add-result",
+    "/admin/upload-result", // ✅ Corrected route
   ];
 
   const currentTab = routes.indexOf(location.pathname);
+
   const handleChange = (event, newValue) => {
     navigate(routes[newValue]);
   };
