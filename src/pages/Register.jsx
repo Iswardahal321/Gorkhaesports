@@ -1,7 +1,9 @@
+// src/pages/Register.jsx
 import React, { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase/config";
+import { auth, db } from "../firebase/config";
+import { doc, setDoc } from "firebase/firestore";
 
 function Register() {
   const [email, setEmail] = useState("");
@@ -15,7 +17,15 @@ function Register() {
     setError("");
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCred = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCred.user;
+
+      // 🔥 Save user to Firestore with role: "user"
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        role: "user",
+      });
+
       navigate("/dashboard");
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
