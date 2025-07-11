@@ -1,8 +1,10 @@
-// src/pages/Login.jsx
+// ✅ Updated: src/pages/Login.jsx
+
 import React, { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore"; // ✅ Import for role check
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase/config";
+import { auth, db } from "../firebase/config";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -14,11 +16,29 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate("/dashboard");
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // ✅ Get role from Firestore
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        const role = userSnap.data().role;
+
+        if (role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/dashboard");
+        }
+      } else {
+        setError("User data not found.");
+      }
+
     } catch (err) {
-      setError("Invalid email or password");
+      setError("Invalid email or password.");
     }
   };
 
