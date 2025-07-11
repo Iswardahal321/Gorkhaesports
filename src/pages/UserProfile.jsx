@@ -1,143 +1,107 @@
-// 📁 src/pages/UserProfile.jsx
-
-import React, { useEffect, useState } from "react";
-import { getAuth, updatePassword } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
-import { db } from "../firebase/config";
+import React, { useState } from "react";
+import { auth } from "../firebase/config";
+import { updateProfile } from "firebase/auth";
 
 const UserProfile = () => {
-  const auth = getAuth();
   const user = auth.currentUser;
+  const email = user?.email || "No Email";
+  const uid = user?.uid || "No UID";
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  const [phone, setPhone] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(true);
+  const togglePhoneModal = () => setShowPhoneModal(!showPhoneModal);
+  const togglePasswordModal = () => setShowPasswordModal(!showPasswordModal);
 
-  const uid = user?.uid || "Unavailable";
-  const email = user?.email || "Unavailable";
-
-  const fetchPhone = async () => {
-    if (!uid) return;
-    try {
-      const docRef = doc(db, "users", uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setPhone(docSnap.data()?.phone || "");
-      }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePhoneUpdate = async () => {
-    if (!newPhone) return;
-    try {
-      const userRef = doc(db, "users", uid);
-      await setDoc(userRef, { phone: newPhone }, { merge: true });
-      setPhone(newPhone);
-      setNewPhone("");
-      alert("Phone number updated.");
-    } catch (error) {
-      console.error("Error updating phone:", error);
-    }
-  };
-
-  const handlePasswordUpdate = async () => {
-    if (newPassword !== confirmPassword) {
-      alert("Passwords do not match.");
-      return;
-    }
-
-    try {
-      await updatePassword(user, newPassword);
-      alert("Password updated successfully.");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (error) {
-      console.error("Error updating password:", error);
-      alert("Password update failed.");
-    }
-  };
-
-  useEffect(() => {
-    fetchPhone();
-  }, []);
+  const userInitial = email.charAt(0).toUpperCase();
 
   return (
-    <div className="max-w-xl mx-auto mt-8 bg-white p-6 rounded shadow">
-      <h1 className="text-2xl font-bold mb-6">👤 User Profile</h1>
-
-      {loading ? (
-        <p className="text-center text-gray-500">Loading profile...</p>
-      ) : (
-        <>
-          {/* Email */}
-          <div className="mb-4">
-            <label className="font-semibold">Email:</label>
-            <p className="text-gray-700">{email}</p>
+    <div className="min-h-screen bg-gray-100 p-4">
+      <div className="max-w-md mx-auto bg-white shadow-md rounded-md p-6">
+        <div className="flex items-center justify-center mb-4">
+          <div className="w-16 h-16 bg-yellow-500 text-white rounded-full flex items-center justify-center text-2xl font-bold">
+            {userInitial}
           </div>
+        </div>
 
-          {/* UID */}
-          <div className="mb-4">
-            <label className="font-semibold">UID:</label>
-            <p className="text-gray-700 break-all">{uid}</p>
-          </div>
+        <h2 className="text-xl text-center font-bold mb-2">Gorkha Esports</h2>
+        <p className="text-center text-gray-600 mb-4">{email}</p>
 
-          {/* Slot Number (Placeholder) */}
-          <div className="mb-4">
-            <label className="font-semibold">Slot Number:</label>
-            <p className="text-gray-700">#Not Assigned</p>
-          </div>
+        <div className="mb-4">
+          <p className="text-sm text-gray-700 font-semibold mb-1">UID:</p>
+          <p className="text-sm bg-gray-100 rounded px-3 py-1">{uid}</p>
+        </div>
 
-          {/* Phone Number */}
-          <div className="mb-6">
-            <label className="font-semibold">Phone Number:</label>
-            <p className="text-gray-700 mb-2">{phone || "Not Added"}</p>
+        <div className="mb-4">
+          <p className="text-sm text-gray-700 font-semibold mb-1">Phone Number:</p>
+          <p className="text-sm bg-gray-100 rounded px-3 py-1">
+            {user.phoneNumber || "Not added"}
+          </p>
+          <button
+            onClick={togglePhoneModal}
+            className="mt-2 bg-blue-600 text-white px-4 py-2 text-sm rounded hover:bg-blue-700"
+          >
+            {user.phoneNumber ? "Update Number" : "Add Phone Number"}
+          </button>
+        </div>
 
+        <div>
+          <button
+            onClick={togglePasswordModal}
+            className="bg-red-500 text-white px-4 py-2 text-sm rounded hover:bg-red-600"
+          >
+            Change Password
+          </button>
+        </div>
+      </div>
+
+      {/* Phone Modal */}
+      {showPhoneModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-md w-[90%] max-w-sm">
+            <h2 className="text-lg font-semibold mb-4">Add / Update Phone</h2>
             <input
               type="tel"
               placeholder="Enter phone number"
-              value={newPhone}
-              onChange={(e) => setNewPhone(e.target.value)}
-              className="w-full px-3 py-2 border rounded mb-2"
+              className="w-full border px-3 py-2 rounded mb-4"
             />
-            <button
-              onClick={handlePhoneUpdate}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              {phone ? "Update Phone" : "Add Phone"}
-            </button>
+            <div className="flex justify-end gap-2">
+              <button
+                className="bg-gray-300 px-4 py-2 rounded"
+                onClick={togglePhoneModal}
+              >
+                Cancel
+              </button>
+              <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Save
+              </button>
+            </div>
           </div>
+        </div>
+      )}
 
-          {/* Change Password */}
-          <div className="mb-4 border-t pt-4">
-            <h2 className="text-lg font-semibold mb-2">🔒 Change Password</h2>
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-md w-[90%] max-w-sm">
+            <h2 className="text-lg font-semibold mb-4">Change Password</h2>
             <input
               type="password"
-              placeholder="New Password"
-              className="w-full px-3 py-2 border rounded mb-2"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password"
+              className="w-full border px-3 py-2 rounded mb-4"
             />
-            <input
-              type="password"
-              placeholder="Confirm New Password"
-              className="w-full px-3 py-2 border rounded mb-4"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-            <button
-              onClick={handlePasswordUpdate}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-            >
-              Update Password
-            </button>
+            <div className="flex justify-end gap-2">
+              <button
+                className="bg-gray-300 px-4 py-2 rounded"
+                onClick={togglePasswordModal}
+              >
+                Cancel
+              </button>
+              <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                Change
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
