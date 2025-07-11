@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
-import "./Dashboard.css";
+import "./dashboard.css";
 
 const Dashboard = () => {
   const [tournaments, setTournaments] = useState([]);
