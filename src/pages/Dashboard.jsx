@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
-import "./dashboard.css";
+import "./Dashboard.css"; // make sure the name is exactly same
 
 const Dashboard = () => {
   const [tournaments, setTournaments] = useState([]);
@@ -14,24 +14,19 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const dailyRef = collection(db, "games-daily");
-        const weeklyRef = collection(db, "games-weekly");
-
-        const [dailySnap, weeklySnap] = await Promise.all([
-          getDocs(dailyRef),
-          getDocs(weeklyRef),
-        ]);
+        const dailySnap = await getDocs(collection(db, "games_daily"));
+        const weeklySnap = await getDocs(collection(db, "games_weekly"));
 
         const dailyData = dailySnap.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data(),
           type: "Daily Scrim",
+          ...doc.data(),
         }));
 
         const weeklyData = weeklySnap.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data(),
           type: "Weekly War",
+          ...doc.data(),
         }));
 
         setTournaments([...dailyData, ...weeklyData]);
@@ -56,17 +51,17 @@ const Dashboard = () => {
 
   return (
     <div className="p-4 w-full bg-gray-100 min-h-screen flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-6">🎯 Live Tournaments</h1>
+      <h1 className="text-3xl font-bold mb-6">🔥 Live Tournaments</h1>
 
       {loading ? (
-        <p className="text-gray-600 animate-pulse">⏳ Loading tournament details...</p>
+        <p className="text-gray-600 animate-pulse text-lg">⏳ Loading tournament details...</p>
       ) : tournaments.length === 0 ? (
-        <p className="text-gray-600">No tournaments found.</p>
+        <p className="text-gray-600 text-lg">No live tournaments found.</p>
       ) : (
-        <div className="flex flex-wrap gap-6 justify-center">
-          {tournaments.map((tourney, index) => (
+        <div className="flex flex-wrap justify-center gap-6">
+          {tournaments.map((game, index) => (
             <div
-              key={tourney.id}
+              key={game.id}
               className="cardContainer"
               onClick={() => toggleCard(index)}
             >
@@ -74,20 +69,19 @@ const Dashboard = () => {
                 <div className="side front">
                   <div className={`img img${(index % 3) + 1}`}></div>
                   <div className="info p-4">
-                    <h2>{tourney.type}</h2>
-                    <p>💰 Entry Fee: ₹{tourney.fee}</p>
+                    <h2>{game.type}</h2>
+                    <p>💰 Entry Fee: ₹{game.fee || 0}</p>
                   </div>
                 </div>
-
                 <div className="side back">
                   <div className="info">
-                    <h2>{tourney.type}</h2>
-                    <p className="mb-4 text-gray-800">{tourney.description}</p>
+                    <h2>{game.name || "Untitled Tournament"}</h2>
+                    <p className="mb-4 text-gray-800">{game.description || "No description provided."}</p>
                     <div className="btn-wrapper flex justify-center mt-4">
                       <button
                         onClick={(e) => {
                           e.stopPropagation(); // prevent flip
-                          handleJoin(tourney.type, tourney.id);
+                          handleJoin(game.type, game.id);
                         }}
                         className="bg-yellow-500 text-white font-bold py-2 px-6 rounded hover:bg-yellow-600 transition duration-300"
                       >
