@@ -8,6 +8,7 @@ import { auth } from "../firebase/config";
 function AdminLayout({ children }) {
   const [user] = useAuthState(auth);
 
+  
   return (
     <div className="min-h-screen relative pb-16 bg-gray-50">
       {/* ✅ Top-right admin profile circle */}
