@@ -8,6 +8,7 @@ const Dashboard = () => {
   const [games, setGames] = useState([]);
   const navigate = useNavigate();
 
+  
   useEffect(() => {
     const fetchGames = async () => {
       const dailySnap = await getDocs(collection(db, "games_daily"));
