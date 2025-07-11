@@ -42,6 +42,7 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
+        {/* User Protected Routes with BottomNav Layout */}
         <Route
           path="/dashboard"
           element={
@@ -72,6 +73,8 @@ function App() {
             </PrivateRoute>
           }
         />
+
+        {/* Admin Protected Routes with BottomNav Layout */}
         <Route
           path="/admin"
           element={
@@ -92,6 +95,7 @@ function App() {
             </AdminRoute>
           }
         />
+
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
