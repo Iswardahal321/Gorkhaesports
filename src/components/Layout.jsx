@@ -1,12 +1,12 @@
 import React from "react";
-import Sidebar from "./Sidebar";
+import BottomNav from "./BottomNav";
 
 const Layout = ({ children }) => {
   return (
-    <div style={{ display: "flex" }}>
-      <Sidebar />
-      <div style={{ flex: 1, padding: "20px" }}>{children}</div>
-    </div>
+    <>
+      <div style={{ paddingBottom: "60px" }}>{children}</div>
+      <BottomNav />
+    </>
   );
 };
 
