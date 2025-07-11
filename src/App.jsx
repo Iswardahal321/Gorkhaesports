@@ -24,6 +24,7 @@ import AddSlot from "./pages/AddSlot.jsx";
 import PrivateRoute from "./components/PrivateRoute.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
 import Layout from "./components/Layout.jsx";
+import AdminLayout from "./components/AdminLayout.jsx"; // ✅ NEW
 
 function App() {
   const [user, setUser] = useState(null);
@@ -87,12 +88,14 @@ function App() {
           }
         />
 
-        {/* ✅ Admin Protected Routes - WITHOUT Layout */}
+        {/* ✅ Admin Protected Routes with AdminLayout */}
         <Route
           path="/admin"
           element={
             <AdminRoute>
-              <AdminPanel />
+              <AdminLayout>
+                <AdminPanel />
+              </AdminLayout>
             </AdminRoute>
           }
         />
@@ -100,7 +103,9 @@ function App() {
           path="/admin/teams"
           element={
             <AdminRoute>
-              <AdminTeams />
+              <AdminLayout>
+                <AdminTeams />
+              </AdminLayout>
             </AdminRoute>
           }
         />
@@ -108,7 +113,9 @@ function App() {
           path="/admin/add-slot"
           element={
             <AdminRoute>
-              <AddSlot />
+              <AdminLayout>
+                <AddSlot />
+              </AdminLayout>
             </AdminRoute>
           }
         />
