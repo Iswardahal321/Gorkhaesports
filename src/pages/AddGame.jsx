@@ -1,6 +1,6 @@
 // src/pages/AddGame.jsx
 import React, { useState } from "react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"; // ✅ UPDATED
 import { db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
 
@@ -21,17 +21,19 @@ function AddGame() {
     }
 
     try {
-      await addDoc(collection(db, "games"), {
+      // ✅ Use gameType as document ID for uniqueness
+      const gameRef = doc(db, "games", gameType);
+      await setDoc(gameRef, {
         gameType,
         fee,
         description,
-        createdAt: serverTimestamp(),
-      });
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
 
-      navigate("/admin"); // redirect to admin panel after success
+      navigate("/admin");
     } catch (err) {
       console.error(err);
-      setError("Failed to add game. Try again.");
+      setError("Failed to add or update game. Try again.");
     }
   };
 
@@ -82,7 +84,7 @@ function AddGame() {
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
           >
-            Add Game
+            Save Game
           </button>
         </form>
       </div>
