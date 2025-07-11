@@ -1,8 +1,8 @@
-// src/pages/Register.jsx
 import React, { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase/config";
+import { auth, db } from "../firebase/config";
+import { doc, setDoc } from "firebase/firestore";
 
 function Register() {
   const [email, setEmail] = useState("");
@@ -15,7 +15,16 @@ function Register() {
     e.preventDefault();
     setError("");
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      // ✅ Add user to Firestore with role = "user"
+      const userRef = doc(db, "users", userCredential.user.uid);
+      await setDoc(userRef, {
+        email: email,
+        role: "user",
+        createdAt: new Date(),
+      });
+
       navigate("/dashboard");
     } catch (err) {
       setError(err.message || "Registration failed");
