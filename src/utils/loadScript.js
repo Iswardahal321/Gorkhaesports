@@ -1,11 +1,11 @@
 // 📁 src/utils/loadScript.js
 
-export default function loadScript(src) {
-  return new Promise((resolve, reject) => {
+export const loadScript = (src) => {
+  return new Promise((resolve) => {
     const script = document.createElement("script");
     script.src = src;
     script.onload = () => resolve(true);
-    script.onerror = () => reject(new Error("Script load failed"));
+    script.onerror = () => resolve(false);
     document.body.appendChild(script);
   });
-}
+};
