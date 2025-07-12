@@ -1,51 +1,59 @@
 import React, { useEffect, useState } from "react";
 import { db } from "../firebase/config";
-import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, Timestamp } from "firebase/firestore";
 
 const AdminAddSlot = () => {
-  const [slotNumber, setSlotNumber] = useState("");
   const [teams, setTeams] = useState([]);
-  const [selectedTeamId, setSelectedTeamId] = useState("");
-  const [success, setSuccess] = useState("");
+  const [teamName, setTeamName] = useState("");
+  const [slotNumber, setSlotNumber] = useState("");
+  const [userId, setUserId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
 
-  // 🔁 Fetch teams with name and uid
   useEffect(() => {
     const fetchTeams = async () => {
-      const snap = await getDocs(collection(db, "teams"));
-      const list = snap.docs.map((doc) => ({
-        id: doc.id,
+      const snapshot = await getDocs(collection(db, "teams"));
+      const data = snapshot.docs.map((doc) => ({
         teamName: doc.data().teamName,
         userId: doc.data().userId,
       }));
-      setTeams(list);
+      setTeams(data);
     };
     fetchTeams();
   }, []);
 
-  // ✅ Handle Submit
+  const handleTeamSelect = (e) => {
+    const name = e.target.value;
+    setTeamName(name);
+    const team = teams.find((t) => t.teamName.trim() === name.trim());
+    setUserId(team?.userId || "");
+  };
+
   const handleAddSlot = async (e) => {
     e.preventDefault();
-    if (!slotNumber || !selectedTeamId) return alert("❌ Fill all fields");
 
-    const team = teams.find((t) => t.id === selectedTeamId);
-    if (!team) return alert("❌ Invalid team selected");
+    if (!teamName || !slotNumber || !userId) {
+      alert("❌ Please fill all fields properly.");
+      return;
+    }
 
     try {
       setLoading(true);
       await addDoc(collection(db, "slots"), {
-        teamName: team.teamName,
-        userId: team.userId,
+        teamName: teamName.trim(),
         slotNumber: parseInt(slotNumber),
+        userId,
         createdAt: Timestamp.now(),
       });
+
+      setTeamName("");
       setSlotNumber("");
-      setSelectedTeamId("");
-      setSuccess("✅ Slot assigned successfully!");
+      setUserId("");
+      setSuccess("✅ Slot added successfully!");
       setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error(err);
-      alert("❌ Error assigning slot");
+    } catch (error) {
+      console.error("Error adding slot:", error);
+      alert("Something went wrong.");
     } finally {
       setLoading(false);
     }
@@ -53,32 +61,29 @@ const AdminAddSlot = () => {
 
   return (
     <div className="max-w-md mx-auto mt-10 bg-white shadow p-6 rounded">
-      <h2 className="text-2xl font-bold mb-4">➕ Assign Slot to Team</h2>
+      <h2 className="text-2xl font-bold mb-4">➕ Add Slot</h2>
 
       <form onSubmit={handleAddSlot} className="space-y-4">
         <div>
           <label className="block mb-1 font-medium">Select Team</label>
           <select
-            className="w-full border p-2 rounded"
-            value={selectedTeamId}
-            onChange={(e) => setSelectedTeamId(e.target.value)}
+            value={teamName}
+            onChange={handleTeamSelect}
+            className="w-full border border-gray-300 p-2 rounded"
+            required
           >
-            <option value="">-- Select Team --</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.id}>
+            <option value="">-- Select a Team --</option>
+            {teams.map((team, idx) => (
+              <option key={idx} value={team.teamName}>
                 {team.teamName}
               </option>
             ))}
           </select>
         </div>
 
-        {/* ✅ Show UID below dropdown */}
-        {selectedTeamId && (
-          <div className="text-xs text-gray-600">
-            UID:{" "}
-            <span className="font-mono">
-              {teams.find((t) => t.id === selectedTeamId)?.userId?.slice(0, 8)}...
-            </span>
+        {userId && (
+          <div className="text-sm text-gray-500">
+            <strong>UID:</strong> {userId}
           </div>
         )}
 
@@ -86,7 +91,7 @@ const AdminAddSlot = () => {
           <label className="block mb-1 font-medium">Slot Number</label>
           <input
             type="number"
-            className="w-full border p-2 rounded"
+            className="w-full border border-gray-300 p-2 rounded"
             value={slotNumber}
             onChange={(e) => setSlotNumber(e.target.value)}
             required
@@ -98,7 +103,7 @@ const AdminAddSlot = () => {
           disabled={loading}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          {loading ? "Adding..." : "Assign Slot"}
+          {loading ? "Adding..." : "Add Slot"}
         </button>
 
         {success && <p className="text-green-600 mt-2">{success}</p>}
