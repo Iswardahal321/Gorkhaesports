@@ -1,27 +1,15 @@
-// 📁 src/pages/SlotList.jsx
-
 import React, { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
 
 const SlotList = () => {
   const [slots, setSlots] = useState([]);
-  const [myTeam, setMyTeam] = useState("");
+  const [userId, setUserId] = useState("");
   const [selectedType, setSelectedType] = useState("daily");
 
   useEffect(() => {
-    const fetchMyTeam = async () => {
-      const userEmail = auth.currentUser?.email;
-      const teamSnap = await getDocs(collection(db, "teams"));
-      const myTeamDoc = teamSnap.docs.find(
-        (doc) => doc.data().leaderEmail === userEmail
-      );
-      if (myTeamDoc) {
-        setMyTeam(myTeamDoc.data().teamName.trim());
-      }
-    };
-
-    fetchMyTeam();
+    const uid = auth.currentUser?.uid;
+    if (uid) setUserId(uid);
   }, []);
 
   useEffect(() => {
@@ -78,7 +66,7 @@ const SlotList = () => {
               <tr
                 key={slot.id}
                 className={
-                  slot.teamName.trim() === myTeam
+                  slot.userId === userId
                     ? "bg-green-100 font-semibold"
                     : "hover:bg-gray-100"
                 }
@@ -88,6 +76,9 @@ const SlotList = () => {
                 <td className="py-2 px-4 border text-center">
                   {slot.slotNumber}
                 </td>
+
+                {/* 🛑 Hidden userId column if needed */}
+                {/* <td style={{ display: "none" }}>{slot.userId}</td> */}
               </tr>
             ))}
           </tbody>
