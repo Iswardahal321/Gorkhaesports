@@ -21,7 +21,7 @@ import AddSlot from "./pages/AddSlot.jsx";
 import AddGame from "./pages/AddGame.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
 import UploadResult from "./pages/UploadResult.jsx";
-// import UserProfile from "./pages/UserProfile.jsx"; // ✅ Added
+// ❌ Removed: import UserProfile from "./pages/UserProfile.jsx";
 
 // Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -86,16 +86,6 @@ function App() {
             <PrivateRoute>
               <Layout>
                 <SlotList />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <PrivateRoute>
-              <Layout>
-                <UserProfile />
               </Layout>
             </PrivateRoute>
           }
