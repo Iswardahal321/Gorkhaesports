@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
-import "./dashboard.css"; // make sure the name is exactly same
+import "./dashboard.css";
 
 const Dashboard = () => {
   const [tournaments, setTournaments] = useState([]);
@@ -40,8 +40,9 @@ const Dashboard = () => {
     fetchTournaments();
   }, []);
 
+  // ✅ Fixed navigation path
   const handleJoin = (type, id) => {
-    navigate(`/payment/${type.toLowerCase().replace(" ", "")}/${id}`);
+    navigate(`/join-tournament/${id}`);
   };
 
   const toggleCard = (index) => {
@@ -76,12 +77,14 @@ const Dashboard = () => {
                 <div className="side back">
                   <div className="info">
                     <h2>{game.name || "Untitled Tournament"}</h2>
-                    <p className="mb-4 text-gray-800">{game.description || "No description provided."}</p>
+                    <p className="mb-4 text-gray-800">
+                      {game.description || "No description provided."}
+                    </p>
                     <div className="btn-wrapper flex justify-center mt-4">
                       <button
                         onClick={(e) => {
-                          e.stopPropagation(); // prevent flip
-                          handleJoin(game.type, game.id);
+                          e.stopPropagation();
+                          handleJoin(game.type, game.id); // ✅ Correct route
                         }}
                         className="bg-yellow-500 text-white font-bold py-2 px-6 rounded hover:bg-yellow-600 transition duration-300"
                       >
