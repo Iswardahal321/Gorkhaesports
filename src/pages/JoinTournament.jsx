@@ -135,7 +135,7 @@ const JoinTournament = () => {
 
       {joinInfo ? (
         <div className="p-4 bg-green-100 rounded">
-          <p className="text-green-700 font-semibold">✅ Already Joined</p>
+          <p className="text-green-700 font-semibold"> 🗃️ Your joining details</p>
           <p className="text-sm mt-1">🆔 Payment ID: {joinInfo.paymentId}</p>
           <p className="text-sm">🎮 Type: {joinInfo.type}</p>
           <p className="text-sm">💰 Paid: ₹{joinInfo.fee}</p>
