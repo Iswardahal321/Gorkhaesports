@@ -21,7 +21,7 @@ import AddSlot from "./pages/AddSlot.jsx";
 import AddGame from "./pages/AddGame.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
 import UploadResult from "./pages/UploadResult.jsx";
-import UserProfile from "./pages/UserProfile.jsx"; // ✅ Added
+// import UserProfile from "./pages/UserProfile.jsx"; // ✅ Added
 
 // Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
