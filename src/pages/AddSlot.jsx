@@ -5,10 +5,12 @@ import {
   addDoc,
   getDocs,
   Timestamp,
+  query,
+  where,
 } from "firebase/firestore";
 
 const AdminAddSlot = () => {
-  const [scrimType, setScrimType] = useState(""); // daily or weekly
+  const [scrimType, setScrimType] = useState("");
   const [teams, setTeams] = useState([]);
   const [teamName, setTeamName] = useState("");
   const [slotNumber, setSlotNumber] = useState("");
@@ -16,31 +18,27 @@ const AdminAddSlot = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
 
-  // 🔁 Fetch teams based on scrimType
   useEffect(() => {
-    const fetchEligibleTeams = async () => {
+    const fetchTeams = async () => {
       if (!scrimType) return;
 
-      const collectionName =
-        scrimType === "daily" ? "games_daily" : "games_weekly";
-
       try {
-        const gameSnap = await getDocs(collection(db, collectionName));
-        const userIdSet = new Set();
+        // 1️⃣ Get all tournament_joins for selected type
+        const joinsQuery = query(
+          collection(db, "tournament_joins"),
+          where("type", "==", scrimType === "daily" ? "Daily Scrim" : "Weekly War")
+        );
+        const joinSnap = await getDocs(joinsQuery);
 
-        gameSnap.forEach((doc) => {
-          const data = doc.data();
-          if (data.userId) userIdSet.add(data.userId);
-        });
+        const paidUserIds = joinSnap.docs.map((doc) => doc.data().userId);
 
-        const allUserIds = Array.from(userIdSet);
-        const teamsSnap = await getDocs(collection(db, "teams"));
-
+        // 2️⃣ Fetch matching teams by userId
+        const teamSnap = await getDocs(collection(db, "teams"));
         const matchedTeams = [];
 
-        teamsSnap.forEach((doc) => {
+        teamSnap.forEach((doc) => {
           const data = doc.data();
-          if (allUserIds.includes(data.userId)) {
+          if (paidUserIds.includes(data.userId)) {
             matchedTeams.push({
               teamName: data.teamName,
               userId: data.userId,
@@ -52,31 +50,29 @@ const AdminAddSlot = () => {
         setTeamName("");
         setUserId("");
       } catch (err) {
-        console.error("❌ Error fetching teams:", err);
+        console.error("❌ Error fetching paid teams:", err);
       }
     };
 
-    fetchEligibleTeams();
+    fetchTeams();
   }, [scrimType]);
 
-  // 🔘 Team select logic
   const handleTeamSelect = (e) => {
-    const selectedName = e.target.value;
-    setTeamName(selectedName);
-    const found = teams.find((t) => t.teamName.trim() === selectedName.trim());
+    const selected = e.target.value;
+    setTeamName(selected);
+    const found = teams.find((t) => t.teamName.trim() === selected.trim());
     setUserId(found?.userId || "");
   };
 
-  // ✅ Save to correct slot collection
   const handleAddSlot = async (e) => {
     e.preventDefault();
+
     if (!teamName || !slotNumber || !userId || !scrimType) {
-      alert("❌ Fill all fields");
+      alert("❌ Please fill all fields properly.");
       return;
     }
 
-    const saveCollection =
-      scrimType === "daily" ? "daily_slots" : "weekly_slots";
+    const saveCollection = scrimType === "daily" ? "daily_slots" : "weekly_slots";
 
     try {
       setLoading(true);
@@ -121,7 +117,7 @@ const AdminAddSlot = () => {
           </select>
         </div>
 
-        {/* 🧠 Team Dropdown */}
+        {/* 🔽 Team Selector */}
         <div>
           <label className="block mb-1 font-medium">Select Team</label>
           <select
@@ -140,7 +136,7 @@ const AdminAddSlot = () => {
           </select>
         </div>
 
-        {/* 👁️ Show UID */}
+        {/* 🧾 UID Display */}
         {userId && (
           <p className="text-sm text-gray-600">
             <strong>UID:</strong> {userId}
@@ -159,7 +155,6 @@ const AdminAddSlot = () => {
           />
         </div>
 
-        {/* ✅ Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -168,7 +163,6 @@ const AdminAddSlot = () => {
           {loading ? "Assigning..." : "Assign Slot"}
         </button>
 
-        {/* ✅ Success Msg */}
         {success && <p className="text-green-600 mt-2">{success}</p>}
       </form>
     </div>
