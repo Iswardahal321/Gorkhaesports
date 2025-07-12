@@ -21,7 +21,6 @@ import AddSlot from "./pages/AddSlot.jsx";
 import AddGame from "./pages/AddGame.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
 import UploadResult from "./pages/UploadResult.jsx";
-// ❌ Removed: import UserProfile from "./pages/UserProfile.jsx";
 
 // Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -71,7 +70,7 @@ function App() {
           }
         />
         <Route
-          path="/join-tournament"
+          path="/join-tournament/:id" // ✅ Fixed Razorpay dynamic ID route
           element={
             <PrivateRoute>
               <Layout>
