@@ -18,12 +18,17 @@ function AddTeam() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [existingTeamId, setExistingTeamId] = useState(null);
+  const [mobileExists, setMobileExists] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchTeam = async () => {
+    const fetchData = async () => {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
+
+      const userSnap = await getDoc(doc(db, "users", currentUser.uid));
+      const mobile = userSnap.data()?.mobile;
+      if (mobile) setMobileExists(true);
 
       const q = query(
         collection(db, "teams"),
@@ -39,11 +44,13 @@ function AddTeam() {
       }
     };
 
-    fetchTeam();
+    fetchData();
   }, []);
 
   const handleAddPlayer = () => {
-    setPlayers([...players, ""]);
+    if (players.length < 5) {
+      setPlayers([...players, ""]);
+    }
   };
 
   const handlePlayerChange = (index, value) => {
@@ -68,14 +75,14 @@ function AddTeam() {
     const userSnap = await getDoc(userDocRef);
     const mobile = userSnap.data()?.mobile;
 
-    if (!mobile) {
+    if (!mobile || mobile.trim() === "") {
       setMessage("❌ Please add your mobile number first from Profile section.");
       setLoading(false);
       return;
     }
 
-    if (players.some((p) => p.trim() === "")) {
-      setMessage("❌ Please fill all player names before submitting.");
+    if (players.length !== 5 || players.some((p) => p.trim() === "")) {
+      setMessage("❌ Please enter exactly 5 player names (no empty fields).");
       setLoading(false);
       return;
     }
@@ -90,12 +97,9 @@ function AddTeam() {
       };
 
       if (existingTeamId) {
-        // Update team
-        const teamRef = doc(db, "teams", existingTeamId);
-        await updateDoc(teamRef, teamData);
+        await updateDoc(doc(db, "teams", existingTeamId), teamData);
         setMessage("✅ Team updated successfully!");
       } else {
-        // Add new team
         await addDoc(collection(db, "teams"), teamData);
         setMessage("✅ Team added successfully!");
       }
@@ -139,7 +143,12 @@ function AddTeam() {
         <button
           type="button"
           onClick={handleAddPlayer}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          disabled={players.length >= 5}
+          className={`px-4 py-2 rounded ${
+            players.length >= 5
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-500 text-white"
+          }`}
         >
           + Add Player
         </button>
