@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
-import { loadScript } from "../utils/loadScript"; // Step 4 👇
+import loadScript from "../utils/loadScript"; // ✅ Fixed default import
 
 const JoinTournament = () => {
   const { id } = useParams();
@@ -33,13 +33,13 @@ const JoinTournament = () => {
     const user = auth.currentUser;
 
     const options = {
-      key: "rzp_test_AvXRP4rfovLSun", // ✅ Your API key
-      amount: tournament.entryFee * 100,
+      key: "rzp_test_AvXRP4rfovLSun", // ✅ Your test Razorpay API key
+      amount: tournament.entryFee * 100, // Amount in paisa
       currency: "INR",
       name: "Gorkha Esports",
       description: tournament.name,
       handler: async function (response) {
-        // ✅ Firestore save
+        // ✅ Store payment success in Firestore
         await addDoc(collection(db, "tournament_joins"), {
           tournamentId: tournament.id,
           userId: user.uid,
@@ -47,7 +47,7 @@ const JoinTournament = () => {
           paymentId: response.razorpay_payment_id,
           joinedAt: new Date(),
         });
-        alert("Tournament Joined Successfully!");
+        alert("✅ Tournament Joined Successfully!");
       },
       prefill: {
         name: user.displayName || "User",
