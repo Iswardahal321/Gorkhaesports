@@ -8,9 +8,13 @@ const Layout = ({ children }) => {
   return (
     <>
       {/* Topbar */}
-      <div className="flex justify-between items-center px-4 py-3 bg-white shadow-md">
+      <div className="relative flex justify-between items-center px-4 py-3 bg-white shadow-md">
         <h1 className="text-xl font-bold text-gray-800">Gorkha Esports</h1>
-        <UserProfileMenu /> {/* ✅ Avatar icon with dropdown */}
+
+        {/* ✅ Top-right floating profile icon */}
+        <div className="absolute top-3 right-4">
+          <UserProfileMenu />
+        </div>
       </div>
 
       {/* Main Content */}
