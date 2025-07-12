@@ -35,12 +35,9 @@ const SlotList = () => {
   }, [selectedType]);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">📋 Slot List</h2>
-
+    <div className="p-4 max-w-3xl mx-auto">
       {/* 🔽 Type Selector */}
       <div className="mb-4">
-        <label className="block font-medium mb-1">Select Scrim Type</label>
         <select
           value={selectedType}
           onChange={(e) => setSelectedType(e.target.value)}
@@ -52,10 +49,10 @@ const SlotList = () => {
       </div>
 
       {/* 📊 Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-300 text-sm">
-          <thead>
-            <tr className="bg-gray-200 text-left">
+      <div className="overflow-x-auto max-h-[420px] overflow-y-auto border border-gray-300 rounded">
+        <table className="min-w-full bg-white text-sm">
+          <thead className="sticky top-0 bg-gray-200">
+            <tr>
               <th className="py-2 px-4 border">Sl. No</th>
               <th className="py-2 px-4 border">Team Name</th>
               <th className="py-2 px-4 border text-center">Slot No</th>
@@ -76,18 +73,13 @@ const SlotList = () => {
                 <td className="py-2 px-4 border text-center">
                   {slot.slotNumber}
                 </td>
-
-                {/* 🛑 Hidden userId column if needed */}
-                {/* <td style={{ display: "none" }}>{slot.userId}</td> */}
               </tr>
             ))}
           </tbody>
         </table>
 
         {slots.length === 0 && (
-          <p className="text-center text-gray-500 mt-4">
-            No slots assigned yet.
-          </p>
+          <p className="text-center text-gray-500 mt-4">No slots found.</p>
         )}
       </div>
     </div>
