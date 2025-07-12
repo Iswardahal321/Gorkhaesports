@@ -92,6 +92,7 @@ function AddTeam() {
         players,
         leaderEmail: currentUser.email,
         leaderName: currentUser.displayName || "Anonymous",
+        userId: currentUser.uid, // ✅ added uid
         createdAt: new Date(),
       };
 
