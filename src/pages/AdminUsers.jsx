@@ -30,7 +30,6 @@ function AdminUsers() {
   const handleDelete = async (uid, email) => {
     if (!window.confirm(`Are you sure to delete ${email} and all related data?`)) return;
     try {
-      // Delete all related data
       const teamQuery = query(collection(db, "teams"), where("leaderEmail", "==", email));
       const teamSnap = await getDocs(teamQuery);
       teamSnap.forEach(async (docu) => await deleteDoc(doc(db, "teams", docu.id)));
@@ -76,14 +75,14 @@ function AdminUsers() {
         <table className="w-full border text-sm">
           <thead className="bg-gray-200 text-xs">
             <tr>
-              <th className="p-2 border">UID</th>
+              <th className="p-2 border">UID (short)</th>
               <th className="p-2 border">Actions</th>
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id} className="text-center">
-                <td className="p-2 border truncate max-w-xs">{u.id}</td>
+                <td className="p-2 border">{u.id.slice(0, 8)}...</td>
                 <td className="p-2 border flex justify-center gap-3">
                   <button
                     onClick={() => openModal(u)}
@@ -109,15 +108,35 @@ function AdminUsers() {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded shadow-md w-full max-w-sm">
             <h3 className="text-lg font-semibold mb-4 text-center">Edit User</h3>
-            <div className="space-y-3">
+            <div className="space-y-3 text-sm">
               <div>
-                <label className="block text-sm font-medium">Role:</label>
+                <label className="block font-medium">UID:</label>
+                <input
+                  type="text"
+                  value={selectedUser.id}
+                  readOnly
+                  className="w-full border bg-gray-100 px-2 py-1 rounded text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium">Email:</label>
+                <input
+                  type="text"
+                  value={selectedUser.email || "N/A"}
+                  readOnly
+                  className="w-full border bg-gray-100 px-2 py-1 rounded text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium">Role:</label>
                 <select
                   value={selectedUser.role}
                   onChange={(e) =>
                     setSelectedUser({ ...selectedUser, role: e.target.value })
                   }
-                  className="w-full border rounded p-2"
+                  className="w-full border rounded px-2 py-1"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
@@ -125,7 +144,7 @@ function AdminUsers() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium">Account Status:</label>
+                <label className="block font-medium">Account Status:</label>
                 <select
                   value={selectedUser.disabled ? "disabled" : "enabled"}
                   onChange={(e) =>
@@ -134,7 +153,7 @@ function AdminUsers() {
                       disabled: e.target.value === "disabled",
                     })
                   }
-                  className="w-full border rounded p-2"
+                  className="w-full border rounded px-2 py-1"
                 >
                   <option value="enabled">Enabled</option>
                   <option value="disabled">Disabled</option>
