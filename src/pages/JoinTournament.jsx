@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { doc, getDoc, addDoc, collection } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  addDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { db, auth } from "../firebase/config";
 import { loadScript } from "../utils/loadScript";
 
@@ -8,37 +16,56 @@ const JoinTournament = () => {
   const { id } = useParams();
   const [tournament, setTournament] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const [statusMessage, setStatusMessage] = useState("");
-  const [statusType, setStatusType] = useState(""); // 'success' or 'error'
+  const [joinInfo, setJoinInfo] = useState(null);
+  const [message, setMessage] = useState(null); // ✅ success or error
 
   useEffect(() => {
-    const fetchTournament = async () => {
+    const fetchData = async () => {
       try {
-        const docRef = doc(db, "tournaments", id);
-        const docSnap = await getDoc(docRef);
+        let docRef = doc(db, "games_daily", id);
+        let docSnap = await getDoc(docRef);
+        let type = "Daily Scrim";
+
+        if (!docSnap.exists()) {
+          docRef = doc(db, "games_weekly", id);
+          docSnap = await getDoc(docRef);
+          type = "Weekly War";
+        }
+
         if (docSnap.exists()) {
-          setTournament({ id: docSnap.id, ...docSnap.data() });
+          const data = docSnap.data();
+          setTournament({
+            id: docSnap.id,
+            type,
+            entryFee: data.fee || 0,
+            name: data.name || "Untitled",
+            ...data,
+          });
+
+          const user = auth.currentUser;
+          if (user) {
+            const q = query(
+              collection(db, "tournament_joins"),
+              where("tournamentId", "==", docSnap.id),
+              where("userId", "==", user.uid)
+            );
+            const qSnap = await getDocs(q);
+            if (!qSnap.empty) {
+              setJoinInfo(qSnap.docs[0].data());
+            }
+          }
+        } else {
+          setTournament(null);
         }
       } catch (error) {
         console.error("Error fetching tournament:", error);
-        showStatus("Tournament not found.", "error");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTournament();
+    fetchData();
   }, [id]);
-
-  const showStatus = (message, type) => {
-    setStatusMessage(message);
-    setStatusType(type);
-    setTimeout(() => {
-      setStatusMessage("");
-      setStatusType("");
-    }, 4000); // 4s me gayab
-  };
 
   const handlePayment = async () => {
     try {
@@ -57,9 +84,16 @@ const JoinTournament = () => {
             userId: user.uid,
             email: user.email,
             paymentId: response.razorpay_payment_id,
+            type: tournament.type,
+            fee: tournament.entryFee,
             joinedAt: new Date(),
           });
-          showStatus("✅ Tournament Joined Successfully!", "success");
+          setJoinInfo({
+            paymentId: response.razorpay_payment_id,
+            type: tournament.type,
+            fee: tournament.entryFee,
+          });
+          showMessage("✅ Tournament Joined Successfully!", "success");
         },
         prefill: {
           name: user.displayName || "User",
@@ -70,39 +104,50 @@ const JoinTournament = () => {
 
       const rzp = new window.Razorpay(options);
       rzp.open();
-    } catch (err) {
-      console.error(err);
-      showStatus("❌ Payment failed. Try again.", "error");
+    } catch (error) {
+      showMessage("❌ Payment failed. Try again.", "error");
     }
   };
 
-  if (loading) return <p className="text-center mt-10">Loading...</p>;
-  if (!tournament) return <p className="text-center mt-10">Tournament not found.</p>;
+  const showMessage = (text, type) => {
+    setMessage({ text, type });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  if (loading) return <p className="text-center mt-10">⏳ Loading...</p>;
+  if (!tournament) return <p className="text-center mt-10">❌ Tournament not found.</p>;
 
   return (
     <div className="p-4 max-w-md mx-auto bg-white shadow-md rounded relative">
+      <h2 className="text-2xl font-bold mb-4">{tournament.name}</h2>
+      <p className="text-gray-700 mb-1">🎮 Type: {tournament.type}</p>
+      <p className="text-gray-700 mb-4">💰 Entry Fee: ₹{tournament.entryFee}</p>
 
-      {/* ✅ Message */}
-      {statusMessage && (
+      {message && (
         <div
-          className={`absolute top-2 left-2 right-2 text-white text-center py-2 rounded ${
-            statusType === "success" ? "bg-green-500" : "bg-red-500"
+          className={`mb-4 px-4 py-2 rounded ${
+            message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
           }`}
         >
-          {statusMessage}
+          {message.text}
         </div>
       )}
 
-      <h2 className="text-2xl font-bold mb-4">{tournament.name}</h2>
-      <p className="mb-2">Type: {tournament.type}</p>
-      <p className="mb-4">💰 Entry Fee: ₹{tournament.entryFee}</p>
-
-      <button
-        onClick={handlePayment}
-        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
-      >
-        Pay & Join Tournament
-      </button>
+      {joinInfo ? (
+        <div className="p-4 bg-green-100 rounded">
+          <p className="text-green-700 font-semibold">✅ Already Joined</p>
+          <p className="text-sm mt-1">🆔 Payment ID: {joinInfo.paymentId}</p>
+          <p className="text-sm">🎮 Type: {joinInfo.type}</p>
+          <p className="text-sm">💰 Paid: ₹{joinInfo.fee}</p>
+        </div>
+      ) : (
+        <button
+          onClick={handlePayment}
+          className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+        >
+          Pay & Join Tournament
+        </button>
+      )}
     </div>
   );
 };
