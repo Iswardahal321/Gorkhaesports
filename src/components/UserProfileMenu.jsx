@@ -124,15 +124,15 @@ const UserProfileMenu = () => {
           </div>
 
           <div className="text-sm text-gray-700 mb-4">
-  <strong>🎮 Slot Number</strong>
+  
   <div className="grid grid-cols-2 gap-2 mt-1 border border-gray-200 p-2 rounded bg-gray-50">
     <div>
       <p className="font-medium text-gray-600">Daily Scrim</p>
-      <p className="text-blue-600 font-semibold">Slot #{dailySlot || "N/A"}</p>
+      <p className="text-blue-600 font-semibold">Slot {dailySlot || "N/A"}</p>
     </div>
     <div>
       <p className="font-medium text-gray-600">Weekly War</p>
-      <p className="text-purple-600 font-semibold">Slot #{weeklySlot || "N/A"}</p>
+      <p className="text-purple-600 font-semibold">Slot {weeklySlot || "N/A"}</p>
     </div>
   </div>
 </div>
