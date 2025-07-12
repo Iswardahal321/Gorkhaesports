@@ -1,24 +1,33 @@
+// 📁 src/pages/JoinTournament.jsx
+
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
-import { loadScript } from "../utils/loadScript";
+
+const loadScript = (src) => {
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 const JoinTournament = () => {
   const { id } = useParams();
   const [tournament, setTournament] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null); // ✅ Store user safely
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
+    // ✅ Auth Check
     const unsubscribe = auth.onAuthStateChanged((u) => {
-      setUser(u); // ✅ Auth-safe user
+      if (u) setUser(u);
     });
-    return () => unsubscribe();
-  }, []);
 
-  
-  useEffect(() => {
+    // ✅ Tournament Fetch
     const fetchTournament = async () => {
       try {
         const docRef = doc(db, "tournaments", id);
@@ -26,22 +35,20 @@ const JoinTournament = () => {
         if (docSnap.exists()) {
           setTournament({ id: docSnap.id, ...docSnap.data() });
         }
-      } catch (error) {
-        console.error("Error fetching:", error);
+      } catch (err) {
+        console.error("Error loading tournament:", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchTournament();
+    return () => unsubscribe();
   }, [id]);
 
   const handlePayment = async () => {
-    await loadScript("https://checkout.razorpay.com/v1/checkout.js");
-
-    if (!user) {
-      alert("Please log in again");
-      return;
-    }
+    const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
+    if (!res) return alert("Razorpay SDK failed to load.");
 
     const options = {
       key: "rzp_test_AvXRP4rfovLSun",
@@ -49,22 +56,18 @@ const JoinTournament = () => {
       currency: "INR",
       name: "Gorkha Esports",
       description: tournament.name,
-      handler: async function (response) {
-        try {
-          await addDoc(collection(db, "tournament_joins"), {
-            tournamentId: tournament.id,
-            userId: user.uid,
-            email: user.email,
-            paymentId: response.razorpay_payment_id,
-            joinedAt: new Date(),
-          });
-          alert("Tournament Joined Successfully!");
-        } catch (err) {
-          alert("Join failed. Try again.");
-        }
+      handler: async (response) => {
+        await addDoc(collection(db, "tournament_joins"), {
+          tournamentId: tournament.id,
+          userId: user.uid,
+          email: user.email,
+          paymentId: response.razorpay_payment_id,
+          joinedAt: new Date(),
+        });
+        alert("Tournament Joined Successfully!");
       },
       prefill: {
-        name: user.displayName || "User",
+        name: user.displayName || "Player",
         email: user.email,
       },
       theme: { color: "#3399cc" },
