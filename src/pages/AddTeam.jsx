@@ -1,3 +1,5 @@
+// 📁 src/pages/AddTeam.jsx
+
 import React, { useState, useEffect } from "react";
 import {
   addDoc,
@@ -44,7 +46,7 @@ function AddTeam() {
 
   const handleAddPlayer = () => {
     if (players.length >= 5) {
-      setMessage("❌ Maximum 5 players allowed.");
+      setMessage("❌ Only 5 players allowed.");
       return;
     }
     setPlayers([...players, ""]);
@@ -68,28 +70,12 @@ function AddTeam() {
       return;
     }
 
-    // ✅ Mobile check
-    try {
-      const userDocRef = doc(db, "users", currentUser.uid);
-      const userSnap = await getDoc(userDocRef);
+    const userDocRef = doc(db, "users", currentUser.uid);
+    const userSnap = await getDoc(userDocRef);
+    const phone = userSnap.data()?.phone;
 
-      if (!userSnap.exists()) {
-        setMessage("❌ User document not found.");
-        setLoading(false);
-        return;
-      }
-
-      const userData = userSnap.data();
-      const mobile = userData?.mobile;
-
-      if (!mobile || mobile.trim() === "") {
-        setMessage("❌ Please add your mobile number first from Profile section.");
-        setLoading(false);
-        return;
-      }
-    } catch (err) {
-      console.error("⚠️ Error checking mobile:", err);
-      setMessage("❌ Error accessing mobile number.");
+    if (!phone) {
+      setMessage("❌ Please add your mobile number first from Profile section.");
       setLoading(false);
       return;
     }
@@ -110,12 +96,10 @@ function AddTeam() {
       };
 
       if (existingTeamId) {
-        // ✅ Update team
         const teamRef = doc(db, "teams", existingTeamId);
         await updateDoc(teamRef, teamData);
         setMessage("✅ Team updated successfully!");
       } else {
-        // ✅ Create new team
         await addDoc(collection(db, "teams"), teamData);
         setMessage("✅ Team added successfully!");
       }
@@ -180,7 +164,7 @@ function AddTeam() {
 
         {message && (
           <p
-            className={`text-sm mt-2 ${
+            className={`text-sm ${
               message.includes("✅")
                 ? "text-green-600"
                 : "text-red-500"
