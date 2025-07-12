@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { signOut, updatePassword } from "firebase/auth";
+import { signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,7 @@ const UserProfileMenu = () => {
   const [newPhone, setNewPhone] = useState("");
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState("");
@@ -55,21 +56,23 @@ const UserProfileMenu = () => {
 
   const handlePasswordUpdate = async () => {
     setPasswordMessage("");
-
     if (newPassword !== confirmPassword) {
       setPasswordMessage("❌ Passwords do not match.");
       return;
     }
 
     try {
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
       setPasswordMessage("✅ Password updated successfully.");
+      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       setTimeout(() => setShowPasswordModal(false), 1500);
     } catch (error) {
       console.error("Password update error:", error);
-      setPasswordMessage("❌ Failed to update password. Try re-login.");
+      setPasswordMessage("❌ Failed to update password. Try re-login or check password.");
     }
   };
 
@@ -128,7 +131,7 @@ const UserProfileMenu = () => {
         </div>
       )}
 
-      {/* Phone Modal */}
+      {/* 📞 Phone Modal */}
       {showPhoneModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white p-5 rounded shadow-lg w-80">
@@ -153,12 +156,19 @@ const UserProfileMenu = () => {
         </div>
       )}
 
-      {/* Password Modal */}
+      {/* 🔐 Password Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white p-5 rounded shadow-lg w-80">
             <h2 className="text-lg font-bold mb-3">🔐 Change Password</h2>
 
+            <input
+              type="password"
+              placeholder="Current Password"
+              className="w-full px-3 py-2 border rounded mb-2"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
             <input
               type="password"
               placeholder="New Password"
@@ -168,29 +178,26 @@ const UserProfileMenu = () => {
             />
             <input
               type="password"
-              placeholder="Confirm Password"
-              className="w-full px-3 py-2 border rounded mb-4"
+              placeholder="Confirm New Password"
+              className="w-full px-3 py-2 border rounded mb-2"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
-
             {passwordMessage && (
               <p
                 className={`text-sm ${
-                  passwordMessage.includes("✅")
-                    ? "text-green-600"
-                    : "text-red-600"
+                  passwordMessage.includes("✅") ? "text-green-600" : "text-red-500"
                 }`}
               >
                 {passwordMessage}
               </p>
             )}
-
-            <div className="flex justify-end space-x-2 mt-2">
+            <div className="flex justify-end mt-4 space-x-2">
               <button onClick={() => setShowPasswordModal(false)}>Cancel</button>
               <button
                 onClick={handlePasswordUpdate}
                 className="bg-blue-600 text-white px-3 py-1 rounded"
+                disabled={!currentPassword || !newPassword || !confirmPassword}
               >
                 Update
               </button>
