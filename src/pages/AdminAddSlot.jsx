@@ -1,21 +1,53 @@
 import React, { useState } from "react";
 import { db } from "../firebase/config";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  Timestamp,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 
 const AdminAddSlot = () => {
   const [teamName, setTeamName] = useState("");
   const [slotNumber, setSlotNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
 
   const handleAddSlot = async (e) => {
     e.preventDefault();
-    if (!teamName || !slotNumber) return alert("Fill all fields");
+    setSuccess("");
+    setError("");
+
+    if (!teamName || !slotNumber) {
+      setError("❌ Fill all fields.");
+      return;
+    }
 
     try {
       setLoading(true);
+
+      // 🔍 Fetch userId from teams collection using teamName
+      const teamQuery = query(
+        collection(db, "teams"),
+        where("teamName", "==", teamName.trim())
+      );
+      const teamSnap = await getDocs(teamQuery);
+
+      if (teamSnap.empty) {
+        setError("❌ Team not found.");
+        setLoading(false);
+        return;
+      }
+
+      const userId = teamSnap.docs[0].data().userId;
+
+      // ✅ Add slot with teamName, slotNumber, and userId
       await addDoc(collection(db, "slots"), {
         teamName: teamName.trim(),
+        userId: userId,
         slotNumber: parseInt(slotNumber),
         createdAt: Timestamp.now(),
       });
@@ -26,7 +58,8 @@ const AdminAddSlot = () => {
       setTimeout(() => setSuccess(""), 3000);
     } catch (error) {
       console.error("Error adding slot:", error);
-      alert("Something went wrong");
+      setError("❌ Something went wrong while adding the slot.");
+      setTimeout(() => setError(""), 3000);
     } finally {
       setLoading(false);
     }
@@ -68,6 +101,7 @@ const AdminAddSlot = () => {
         </button>
 
         {success && <p className="text-green-600 mt-2">{success}</p>}
+        {error && <p className="text-red-600 mt-2">{error}</p>}
       </form>
     </div>
   );
