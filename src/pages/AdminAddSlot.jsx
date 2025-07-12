@@ -15,11 +15,13 @@ const AdminAddSlot = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [lastSlotInfo, setLastSlotInfo] = useState(null);
 
   const handleAddSlot = async (e) => {
     e.preventDefault();
     setSuccess("");
     setError("");
+    setLastSlotInfo(null);
 
     if (!teamName || !slotNumber) {
       setError("❌ Fill all fields.");
@@ -29,7 +31,7 @@ const AdminAddSlot = () => {
     try {
       setLoading(true);
 
-      // 🔍 Fetch userId from teams collection using teamName
+      // 🔍 Find team by name
       const teamQuery = query(
         collection(db, "teams"),
         where("teamName", "==", teamName.trim())
@@ -42,23 +44,33 @@ const AdminAddSlot = () => {
         return;
       }
 
-      const userId = teamSnap.docs[0].data().userId;
+      const teamData = teamSnap.docs[0].data();
+      const userId = teamData.userId || teamSnap.docs[0].id; // fallback to team doc id if userId not found
 
-      // ✅ Add slot with teamName, slotNumber, and userId
+      // ✅ Add slot with teamName, userId, slotNumber
       await addDoc(collection(db, "slots"), {
         teamName: teamName.trim(),
-        userId: userId,
         slotNumber: parseInt(slotNumber),
+        userId,
         createdAt: Timestamp.now(),
+      });
+
+      setSuccess("✅ Slot added successfully!");
+      setLastSlotInfo({
+        teamName: teamName.trim(),
+        slotNumber: parseInt(slotNumber),
+        userId,
       });
 
       setTeamName("");
       setSlotNumber("");
-      setSuccess("✅ Slot added successfully!");
-      setTimeout(() => setSuccess(""), 3000);
+      setTimeout(() => {
+        setSuccess("");
+        setLastSlotInfo(null);
+      }, 4000);
     } catch (error) {
       console.error("Error adding slot:", error);
-      setError("❌ Something went wrong while adding the slot.");
+      setError("❌ Something went wrong.");
       setTimeout(() => setError(""), 3000);
     } finally {
       setLoading(false);
@@ -67,7 +79,7 @@ const AdminAddSlot = () => {
 
   return (
     <div className="max-w-md mx-auto mt-10 bg-white shadow p-6 rounded">
-      <h2 className="text-2xl font-bold mb-4">➕ Add Slot</h2>
+      <h2 className="text-2xl font-bold mb-4">➕ Assign Slot</h2>
 
       <form onSubmit={handleAddSlot} className="space-y-4">
         <div>
@@ -100,8 +112,17 @@ const AdminAddSlot = () => {
           {loading ? "Adding..." : "Add Slot"}
         </button>
 
-        {success && <p className="text-green-600 mt-2">{success}</p>}
-        {error && <p className="text-red-600 mt-2">{error}</p>}
+        {success && <p className="text-green-600 mt-3">{success}</p>}
+        {error && <p className="text-red-600 mt-3">{error}</p>}
+
+        {lastSlotInfo && (
+          <div className="bg-gray-100 p-4 mt-4 rounded text-sm">
+            <p><strong>✅ Assigned Details:</strong></p>
+            <p>🧠 Team: <span className="font-medium">{lastSlotInfo.teamName}</span></p>
+            <p>🎯 Slot: <span className="font-medium">{lastSlotInfo.slotNumber}</span></p>
+            <p>🆔 UID: <code className="bg-gray-200 px-1 py-0.5 rounded">{lastSlotInfo.userId}</code></p>
+          </div>
+        )}
       </form>
     </div>
   );
