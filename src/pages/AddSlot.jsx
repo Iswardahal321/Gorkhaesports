@@ -13,7 +13,8 @@ const AdminAddSlot = () => {
   const [scrimType, setScrimType] = useState("");
   const [paidUsers, setPaidUsers] = useState([]);
   const [teams, setTeams] = useState([]);
-  const [assignedUserIds, setAssignedUserIds] = useState([]);
+  const [assignedDaily, setAssignedDaily] = useState([]);
+  const [assignedWeekly, setAssignedWeekly] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [slotNumber, setSlotNumber] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -22,7 +23,28 @@ const AdminAddSlot = () => {
   const [slotList, setSlotList] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
 
-  // ✅ Fetch paid users based on scrim type
+  useEffect(() => {
+    const fetchTeams = async () => {
+      const snapshot = await getDocs(collection(db, "teams"));
+      const data = snapshot.docs.map((doc) => ({
+        ...doc.data(),
+        teamName: doc.data().teamName.trim(),
+      }));
+      setTeams(data);
+    };
+    fetchTeams();
+  }, []);
+
+  useEffect(() => {
+    const fetchAssignedSlots = async () => {
+      const daily = await getDocs(collection(db, "daily_slots"));
+      const weekly = await getDocs(collection(db, "weekly_slots"));
+      setAssignedDaily(daily.docs.map((doc) => doc.data().userId));
+      setAssignedWeekly(weekly.docs.map((doc) => doc.data().userId));
+    };
+    fetchAssignedSlots();
+  }, []);
+
   useEffect(() => {
     const fetchPaidUsers = async () => {
       const snapshot = await getDocs(collection(db, "tournament_joins"));
@@ -36,41 +58,9 @@ const AdminAddSlot = () => {
       setPaidUsers(filtered);
     };
 
-    if (scrimType) {
-      fetchPaidUsers();
-    }
+    if (scrimType) fetchPaidUsers();
   }, [scrimType]);
 
-  // ✅ Fetch all teams
-  useEffect(() => {
-    const fetchTeams = async () => {
-      const snapshot = await getDocs(collection(db, "teams"));
-      const data = snapshot.docs.map((doc) => ({
-        ...doc.data(),
-        teamName: doc.data().teamName.trim(),
-      }));
-      setTeams(data);
-    };
-
-    fetchTeams();
-  }, []);
-
-  // ✅ Fetch assigned userIds
-  useEffect(() => {
-    const fetchAssigned = async () => {
-      const daily = await getDocs(collection(db, "daily_slots"));
-      const weekly = await getDocs(collection(db, "weekly_slots"));
-      const ids = [
-        ...daily.docs.map((doc) => doc.data().userId),
-        ...weekly.docs.map((doc) => doc.data().userId),
-      ];
-      setAssignedUserIds(ids);
-    };
-
-    fetchAssigned();
-  }, []);
-
-  // ✅ Auto slot number
   useEffect(() => {
     const fetchNextSlot = async () => {
       if (!scrimType) return;
@@ -123,7 +113,6 @@ const AdminAddSlot = () => {
     }
   };
 
-  // ✅ View Slot List (popup)
   const openSlotList = async (type) => {
     setPopupType(type);
     const col = type === "daily" ? "daily_slots" : "weekly_slots";
@@ -147,17 +136,19 @@ const AdminAddSlot = () => {
     }
   };
 
-  // ✅ Filter team dropdown
-  const filteredTeamUsers = paidUsers.filter(
-    (u) => !assignedUserIds.includes(u.userId)
-  );
+  const filteredTeamUsers = paidUsers.filter((u) => {
+    if (scrimType === "daily") {
+      return !assignedDaily.includes(u.userId);
+    } else {
+      return !assignedWeekly.includes(u.userId);
+    }
+  });
 
   return (
     <div className="max-w-xl mx-auto mt-10 bg-white shadow p-6 rounded">
       <h2 className="text-2xl font-bold mb-4">🎯 Assign Slot</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* ✅ Scrim Type */}
         <div>
           <label className="block mb-1 font-medium">Select Scrim Type</label>
           <select
@@ -172,78 +163,75 @@ const AdminAddSlot = () => {
           </select>
         </div>
 
-        {/* ✅ Team */}
         {scrimType && (
-          <div>
-            <label className="block mb-1 font-medium">Select Team</label>
-            <select
-              onChange={handleTeamSelect}
-              className="w-full border p-2 rounded"
-              required
+          <>
+            <div>
+              <label className="block mb-1 font-medium">Select Team</label>
+              <select
+                onChange={handleTeamSelect}
+                className="w-full border p-2 rounded"
+                required
+              >
+                <option value="">-- Choose Team --</option>
+                {filteredTeamUsers.map((u, idx) => {
+                  const team = teams.find((t) => t.userId === u.userId);
+                  return (
+                    team && (
+                      <option key={idx} value={u.userId}>
+                        {team.teamName}
+                      </option>
+                    )
+                  );
+                })}
+              </select>
+            </div>
+
+            {selectedTeam?.userId && (
+              <div className="text-sm text-gray-600">
+                <strong>UID:</strong> {selectedTeam.userId}
+              </div>
+            )}
+
+            <div>
+              <label className="block mb-1 font-medium">Slot Number</label>
+              <input
+                type="number"
+                className="w-full border p-2 rounded bg-gray-100"
+                value={slotNumber}
+                readOnly
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-blue-600 text-white px-4 py-2 rounded w-full"
             >
-              <option value="">-- Choose Team --</option>
-              {filteredTeamUsers.map((u, idx) => {
-                const team = teams.find((t) => t.userId === u.userId);
-                return (
-                  team && (
-                    <option key={idx} value={u.userId}>
-                      {team.teamName}
-                    </option>
-                  )
-                );
-              })}
-            </select>
-          </div>
+              {loading ? "Assigning..." : "Assign Slot"}
+            </button>
+
+            {success && <p className="text-green-600 mt-2">{success}</p>}
+          </>
         )}
-
-        {/* ✅ UID Display */}
-        {selectedTeam?.userId && (
-          <div className="text-sm text-gray-600">
-            <strong>UID:</strong> {selectedTeam.userId}
-          </div>
-        )}
-
-        {/* ✅ Slot Number */}
-        {scrimType && (
-          <div>
-            <label className="block mb-1 font-medium">Slot Number</label>
-            <input
-              type="number"
-              className="w-full border p-2 rounded bg-gray-100"
-              value={slotNumber}
-              readOnly
-            />
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded w-full"
-        >
-          {loading ? "Assigning..." : "Assign Slot"}
-        </button>
-
-        {success && <p className="text-green-600 mt-2">{success}</p>}
       </form>
 
-      {/* ✅ View Buttons */}
+      {/* ✅ View Buttons: Daily first */}
       <div className="mt-6 flex gap-4 justify-center">
-        <button
-          onClick={() => openSlotList("weekly")}
-          className="bg-gray-800 text-white px-3 py-1 rounded"
-        >
-          📅 View Weekly Slots
-        </button>
         <button
           onClick={() => openSlotList("daily")}
           className="bg-gray-800 text-white px-3 py-1 rounded"
         >
           📆 View Daily Slots
         </button>
+        <button
+          onClick={() => openSlotList("weekly")}
+          className="bg-gray-800 text-white px-3 py-1 rounded"
+        >
+          📅 View Weekly Slots
+        </button>
       </div>
 
-      {/* ✅ Slot List Popup */}
+      {/* ✅ Popup Slot Table */}
       {showPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white w-[90%] max-w-lg p-4 rounded shadow-lg">
