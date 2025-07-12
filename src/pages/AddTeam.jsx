@@ -18,17 +18,12 @@ function AddTeam() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [existingTeamId, setExistingTeamId] = useState(null);
-  const [mobileExists, setMobileExists] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchTeam = async () => {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
-
-      const userSnap = await getDoc(doc(db, "users", currentUser.uid));
-      const mobile = userSnap.data()?.mobile;
-      if (mobile) setMobileExists(true);
 
       const q = query(
         collection(db, "teams"),
@@ -44,13 +39,15 @@ function AddTeam() {
       }
     };
 
-    fetchData();
+    fetchTeam();
   }, []);
 
   const handleAddPlayer = () => {
-    if (players.length < 5) {
-      setPlayers([...players, ""]);
+    if (players.length >= 5) {
+      setMessage("❌ Maximum 5 players allowed.");
+      return;
     }
+    setPlayers([...players, ""]);
   };
 
   const handlePlayerChange = (index, value) => {
@@ -71,18 +68,34 @@ function AddTeam() {
       return;
     }
 
-    const userDocRef = doc(db, "users", currentUser.uid);
-    const userSnap = await getDoc(userDocRef);
-    const mobile = userSnap.data()?.mobile;
+    // ✅ Mobile check
+    try {
+      const userDocRef = doc(db, "users", currentUser.uid);
+      const userSnap = await getDoc(userDocRef);
 
-    if (!mobile || mobile.trim() === "") {
-      setMessage("❌ Please add your mobile number first from Profile section.");
+      if (!userSnap.exists()) {
+        setMessage("❌ User document not found.");
+        setLoading(false);
+        return;
+      }
+
+      const userData = userSnap.data();
+      const mobile = userData?.mobile;
+
+      if (!mobile || mobile.trim() === "") {
+        setMessage("❌ Please add your mobile number first from Profile section.");
+        setLoading(false);
+        return;
+      }
+    } catch (err) {
+      console.error("⚠️ Error checking mobile:", err);
+      setMessage("❌ Error accessing mobile number.");
       setLoading(false);
       return;
     }
 
-    if (players.length !== 5 || players.some((p) => p.trim() === "")) {
-      setMessage("❌ Please enter exactly 5 player names (no empty fields).");
+    if (players.some((p) => p.trim() === "")) {
+      setMessage("❌ Please fill all player names before submitting.");
       setLoading(false);
       return;
     }
@@ -97,9 +110,12 @@ function AddTeam() {
       };
 
       if (existingTeamId) {
-        await updateDoc(doc(db, "teams", existingTeamId), teamData);
+        // ✅ Update team
+        const teamRef = doc(db, "teams", existingTeamId);
+        await updateDoc(teamRef, teamData);
         setMessage("✅ Team updated successfully!");
       } else {
+        // ✅ Create new team
         await addDoc(collection(db, "teams"), teamData);
         setMessage("✅ Team added successfully!");
       }
@@ -140,18 +156,15 @@ function AddTeam() {
           ))}
         </div>
 
-        <button
-          type="button"
-          onClick={handleAddPlayer}
-          disabled={players.length >= 5}
-          className={`px-4 py-2 rounded ${
-            players.length >= 5
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-blue-500 text-white"
-          }`}
-        >
-          + Add Player
-        </button>
+        {players.length < 5 && (
+          <button
+            type="button"
+            onClick={handleAddPlayer}
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            + Add Player
+          </button>
+        )}
 
         <button
           type="submit"
@@ -167,8 +180,10 @@ function AddTeam() {
 
         {message && (
           <p
-            className={`text-sm ${
-              message.includes("✅") ? "text-green-600" : "text-red-500"
+            className={`text-sm mt-2 ${
+              message.includes("✅")
+                ? "text-green-600"
+                : "text-red-500"
             }`}
           >
             {message}
