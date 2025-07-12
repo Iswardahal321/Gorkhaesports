@@ -23,6 +23,7 @@ import AddSlot from "./pages/AddSlot.jsx";
 import AddGame from "./pages/AddGame.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
 import UploadResult from "./pages/UploadResult.jsx";
+import IDPass from "./pages/IDPass.jsx"; // ✅ Added new page
 
 // ✅ Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -73,7 +74,7 @@ function App() {
           }
         />
         <Route
-          path="/join-tournament/:type/:id" // ✅ Correct dynamic route
+          path="/join-tournament/:type/:id"
           element={
             <PrivateRoute>
               <Layout>
@@ -88,6 +89,16 @@ function App() {
             <PrivateRoute>
               <Layout>
                 <SlotList />
+              </Layout>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/id-pass" // ✅ New Route Added
+          element={
+            <PrivateRoute>
+              <Layout>
+                <IDPass />
               </Layout>
             </PrivateRoute>
           }
