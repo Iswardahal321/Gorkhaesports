@@ -123,14 +123,19 @@ const UserProfileMenu = () => {
             <strong>UID:</strong> <br /> {user?.uid}
           </div>
 
-          <div className="text-sm text-gray-700 mb-2">
-            <strong>📋 Daily Scrim Slot:</strong> <br />{" "}
-            {dailySlot ? `#${dailySlot}` : "Not Assigned"}
-          </div>
-          <div className="text-sm text-gray-700 mb-3">
-            <strong>📋 Weekly War Slot:</strong> <br />{" "}
-            {weeklySlot ? `#${weeklySlot}` : "Not Assigned"}
-          </div>
+          <div className="text-sm text-gray-700 mb-4">
+  <strong>🎮 Slot Number</strong>
+  <div className="grid grid-cols-2 gap-2 mt-1 border border-gray-200 p-2 rounded bg-gray-50">
+    <div>
+      <p className="font-medium text-gray-600">Daily Scrim</p>
+      <p className="text-blue-600 font-semibold">Slot #{dailySlot || "N/A"}</p>
+    </div>
+    <div>
+      <p className="font-medium text-gray-600">Weekly War</p>
+      <p className="text-purple-600 font-semibold">Slot #{weeklySlot || "N/A"}</p>
+    </div>
+  </div>
+</div>
 
           <div className="text-sm text-gray-700 mb-3">
             <strong>📞 Phone:</strong> <br /> {phone || "Not added"}
