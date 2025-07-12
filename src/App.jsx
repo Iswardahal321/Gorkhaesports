@@ -1,3 +1,5 @@
+// 📁 src/App.js
+
 import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
@@ -71,7 +73,7 @@ function App() {
           }
         />
         <Route
-          path="/join-tournament/:id" // ✅ Dynamic Route for Razorpay Payment
+          path="/join-tournament/:type/:id" // ✅ Correct dynamic route
           element={
             <PrivateRoute>
               <Layout>
@@ -153,7 +155,7 @@ function App() {
           }
         />
 
-        {/* ✅ Fallback to login */}
+        {/* ✅ Catch-all Route */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
