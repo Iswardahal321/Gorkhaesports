@@ -13,6 +13,8 @@ import { db } from "../firebase/config";
 function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const fetchUsers = async () => {
     const usersSnapshot = await getDocs(collection(db, "users"));
@@ -25,93 +27,73 @@ function AdminUsers() {
     fetchUsers();
   }, []);
 
-  const handleRoleChange = async (uid, newRole) => {
-    try {
-      await updateDoc(doc(db, "users", uid), { role: newRole });
-      fetchUsers();
-    } catch (error) {
-      alert("Failed to update role.");
-    }
-  };
-
-  const handleStatusChange = async (uid, newStatus) => {
-    try {
-      await updateDoc(doc(db, "users", uid), { disabled: newStatus === "disabled" });
-      fetchUsers();
-    } catch (error) {
-      alert("Failed to update account status.");
-    }
-  };
-
   const handleDelete = async (uid, email) => {
-    if (!window.confirm(`Are you sure you want to delete ${email}? This will remove all related data.`)) return;
-
+    if (!window.confirm(`Are you sure to delete ${email} and all related data?`)) return;
     try {
-      // 1. Delete team(s) created by user
+      // Delete all related data
       const teamQuery = query(collection(db, "teams"), where("leaderEmail", "==", email));
       const teamSnap = await getDocs(teamQuery);
       teamSnap.forEach(async (docu) => await deleteDoc(doc(db, "teams", docu.id)));
 
-      // 2. Delete tournament joins
       const joinQuery = query(collection(db, "tournament_joins"), where("userId", "==", uid));
       const joinSnap = await getDocs(joinQuery);
       joinSnap.forEach(async (docu) => await deleteDoc(doc(db, "tournament_joins", docu.id)));
 
-      // 3. Delete user document
       await deleteDoc(doc(db, "users", uid));
 
-      // ⚠️ Note: Firebase Auth account cannot be deleted from Firestore — needs backend function or Admin SDK
-      alert("User and related data deleted.");
+      alert("User deleted successfully.");
       fetchUsers();
     } catch (err) {
-      console.error(err);
-      alert("Failed to delete user.");
+      alert("❌ Failed to delete user.");
+    }
+  };
+
+  const openModal = (user) => {
+    setSelectedUser({ ...user }); // clone to avoid auto update
+    setModalOpen(true);
+  };
+
+  const handleModalSave = async () => {
+    try {
+      await updateDoc(doc(db, "users", selectedUser.id), {
+        role: selectedUser.role,
+        disabled: selectedUser.disabled,
+      });
+      setModalOpen(false);
+      fetchUsers();
+    } catch (err) {
+      alert("❌ Failed to update user.");
     }
   };
 
   return (
     <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4 text-center">All Registered Users</h2>
+      <h2 className="text-2xl font-bold mb-4 text-center">All Users</h2>
+
       {loading ? (
         <p>Loading...</p>
       ) : (
         <table className="w-full border text-sm">
-          <thead className="bg-gray-200">
+          <thead className="bg-gray-200 text-xs">
             <tr>
-              <th className="p-2 border">Email</th>
-              <th className="p-2 border">Role</th>
-              <th className="p-2 border">Status</th>
+              <th className="p-2 border">UID</th>
               <th className="p-2 border">Actions</th>
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id} className="text-center">
-                <td className="p-2 border">{u.email}</td>
-                <td className="p-2 border">
-                  <select
-                    value={u.role}
-                    onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                    className="border rounded p-1 text-sm"
+                <td className="p-2 border truncate max-w-xs">{u.id}</td>
+                <td className="p-2 border flex justify-center gap-3">
+                  <button
+                    onClick={() => openModal(u)}
+                    className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
                   >
-                    <option value="user">user</option>
-                    <option value="admin">admin</option>
-                  </select>
-                </td>
-                <td className="p-2 border">
-                  <select
-                    value={u.disabled ? "disabled" : "enabled"}
-                    onChange={(e) => handleStatusChange(u.id, e.target.value)}
-                    className="border rounded p-1 text-sm"
-                  >
-                    <option value="enabled">Enabled</option>
-                    <option value="disabled">Disabled</option>
-                  </select>
-                </td>
-                <td className="p-2 border">
+                    View
+                  </button>
                   <button
                     onClick={() => handleDelete(u.id, u.email)}
-                    className="bg-red-500 text-white px-2 py-1 rounded text-xs"
+                    className="bg-red-500 text-white px-3 py-1 rounded text-xs"
                   >
                     Delete
                   </button>
@@ -120,6 +102,62 @@ function AdminUsers() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* Modal */}
+      {modalOpen && selectedUser && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white p-6 rounded shadow-md w-full max-w-sm">
+            <h3 className="text-lg font-semibold mb-4 text-center">Edit User</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium">Role:</label>
+                <select
+                  value={selectedUser.role}
+                  onChange={(e) =>
+                    setSelectedUser({ ...selectedUser, role: e.target.value })
+                  }
+                  className="w-full border rounded p-2"
+                >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium">Account Status:</label>
+                <select
+                  value={selectedUser.disabled ? "disabled" : "enabled"}
+                  onChange={(e) =>
+                    setSelectedUser({
+                      ...selectedUser,
+                      disabled: e.target.value === "disabled",
+                    })
+                  }
+                  className="w-full border rounded p-2"
+                >
+                  <option value="enabled">Enabled</option>
+                  <option value="disabled">Disabled</option>
+                </select>
+              </div>
+
+              <div className="flex justify-between mt-4">
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="bg-gray-400 text-white px-4 py-1 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleModalSave}
+                  className="bg-green-600 text-white px-4 py-1 rounded"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
