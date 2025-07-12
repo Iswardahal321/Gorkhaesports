@@ -1,77 +1,64 @@
-import React, { useState } from "react";
-import { db } from "../firebase/config";
+import React, { useEffect, useState } from "react";
 import {
   collection,
+  getDocs,
   addDoc,
   Timestamp,
-  query,
-  where,
-  getDocs,
 } from "firebase/firestore";
+import { db } from "../firebase/config";
 
 const AdminAddSlot = () => {
-  const [teamName, setTeamName] = useState("");
+  const [teams, setTeams] = useState([]);
+  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [selectedTeamName, setSelectedTeamName] = useState("");
   const [slotNumber, setSlotNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
-  const [lastSlotInfo, setLastSlotInfo] = useState(null);
+
+  // 🔄 Fetch all teams on mount
+  useEffect(() => {
+    const fetchTeams = async () => {
+      const snap = await getDocs(collection(db, "teams"));
+      const teamList = snap.docs.map((doc) => ({
+        id: doc.id,
+        teamName: doc.data().teamName,
+        userId: doc.data().userId || doc.id, // fallback to doc id
+      }));
+      setTeams(teamList);
+    };
+
+    fetchTeams();
+  }, []);
 
   const handleAddSlot = async (e) => {
     e.preventDefault();
     setSuccess("");
     setError("");
-    setLastSlotInfo(null);
 
-    if (!teamName || !slotNumber) {
-      setError("❌ Fill all fields.");
+    if (!selectedTeamId || !selectedTeamName || !slotNumber) {
+      setError("❌ Please fill all fields.");
       return;
     }
 
     try {
       setLoading(true);
 
-      // 🔍 Find team by name
-      const teamQuery = query(
-        collection(db, "teams"),
-        where("teamName", "==", teamName.trim())
-      );
-      const teamSnap = await getDocs(teamQuery);
-
-      if (teamSnap.empty) {
-        setError("❌ Team not found.");
-        setLoading(false);
-        return;
-      }
-
-      const teamData = teamSnap.docs[0].data();
-      const userId = teamData.userId || teamSnap.docs[0].id; // fallback to team doc id if userId not found
-
-      // ✅ Add slot with teamName, userId, slotNumber
       await addDoc(collection(db, "slots"), {
-        teamName: teamName.trim(),
+        teamName: selectedTeamName,
         slotNumber: parseInt(slotNumber),
-        userId,
+        userId: selectedTeamId,
         createdAt: Timestamp.now(),
       });
 
       setSuccess("✅ Slot added successfully!");
-      setLastSlotInfo({
-        teamName: teamName.trim(),
-        slotNumber: parseInt(slotNumber),
-        userId,
-      });
-
-      setTeamName("");
       setSlotNumber("");
-      setTimeout(() => {
-        setSuccess("");
-        setLastSlotInfo(null);
-      }, 4000);
+      setSelectedTeamId("");
+      setSelectedTeamName("");
+      setTimeout(() => setSuccess(""), 4000);
     } catch (error) {
       console.error("Error adding slot:", error);
-      setError("❌ Something went wrong.");
-      setTimeout(() => setError(""), 3000);
+      setError("❌ Failed to add slot.");
     } finally {
       setLoading(false);
     }
@@ -79,19 +66,39 @@ const AdminAddSlot = () => {
 
   return (
     <div className="max-w-md mx-auto mt-10 bg-white shadow p-6 rounded">
-      <h2 className="text-2xl font-bold mb-4">➕ Assign Slot</h2>
+      <h2 className="text-2xl font-bold mb-4">🎯 Assign Slot</h2>
 
       <form onSubmit={handleAddSlot} className="space-y-4">
         <div>
-          <label className="block mb-1 font-medium">Team Name</label>
-          <input
-            type="text"
+          <label className="block mb-1 font-medium">Select Team</label>
+          <select
+            value={selectedTeamId}
+            onChange={(e) => {
+              const id = e.target.value;
+              const team = teams.find((t) => t.id === id);
+              setSelectedTeamId(id);
+              setSelectedTeamName(team?.teamName || "");
+            }}
             className="w-full border border-gray-300 p-2 rounded"
-            value={teamName}
-            onChange={(e) => setTeamName(e.target.value)}
             required
-          />
+          >
+            <option value="">-- Select Team --</option>
+            {teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.teamName}
+              </option>
+            ))}
+          </select>
         </div>
+
+        {selectedTeamId && (
+          <p className="text-sm text-gray-600">
+            🆔 UID:{" "}
+            <code className="bg-gray-100 px-2 py-1 rounded text-xs">
+              {selectedTeamId}
+            </code>
+          </p>
+        )}
 
         <div>
           <label className="block mb-1 font-medium">Slot Number</label>
@@ -109,20 +116,11 @@ const AdminAddSlot = () => {
           disabled={loading}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          {loading ? "Adding..." : "Add Slot"}
+          {loading ? "Assigning..." : "Assign Slot"}
         </button>
 
-        {success && <p className="text-green-600 mt-3">{success}</p>}
-        {error && <p className="text-red-600 mt-3">{error}</p>}
-
-        {lastSlotInfo && (
-          <div className="bg-gray-100 p-4 mt-4 rounded text-sm">
-            <p><strong>✅ Assigned Details:</strong></p>
-            <p>🧠 Team: <span className="font-medium">{lastSlotInfo.teamName}</span></p>
-            <p>🎯 Slot: <span className="font-medium">{lastSlotInfo.slotNumber}</span></p>
-            <p>🆔 UID: <code className="bg-gray-200 px-1 py-0.5 rounded">{lastSlotInfo.userId}</code></p>
-          </div>
-        )}
+        {success && <p className="text-green-600">{success}</p>}
+        {error && <p className="text-red-600">{error}</p>}
       </form>
     </div>
   );
