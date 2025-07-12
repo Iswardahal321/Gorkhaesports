@@ -17,6 +17,7 @@ const JoinTournament = () => {
     return () => unsubscribe();
   }, []);
 
+  
   useEffect(() => {
     const fetchTournament = async () => {
       try {
