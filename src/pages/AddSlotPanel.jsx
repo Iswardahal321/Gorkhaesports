@@ -1,121 +1,149 @@
 import React, { useEffect, useState } from "react";
+import { db } from "../firebase/config";
 import {
   collection,
-  getDocs,
   addDoc,
-  query,
-  orderBy,
+  getDocs,
   Timestamp,
+  query,
+  where,
 } from "firebase/firestore";
-import { db } from "../firebase/config";
 
-function AddSlotPanel() {
-  const [allTeams, setAllTeams] = useState([]);
-  const [assignedSlots, setAssignedSlots] = useState([]);
-  const [availableTeams, setAvailableTeams] = useState([]);
-  const [selectedTeam, setSelectedTeam] = useState("");
-  const [error, setError] = useState("");
+const AdminAddSlot = () => {
+  const [type, setType] = useState(""); // "weekly" or "daily"
+  const [teams, setTeams] = useState([]);
+  const [teamName, setTeamName] = useState("");
+  const [userId, setUserId] = useState("");
+  const [slotNumber, setSlotNumber] = useState("");
+  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
 
-  // Fetch all teams and slots
+  // 🔁 Fetch teams when type changes
   useEffect(() => {
-    const fetchData = async () => {
-      const teamSnap = await getDocs(collection(db, "teams"));
-      const slotSnap = await getDocs(
-        query(collection(db, "assigned_slots"), orderBy("slotNo", "asc"))
+    const fetchPaidTeams = async () => {
+      if (!type) return;
+      const col = type === "weekly" ? "games_weekly" : "games_daily";
+      const q = query(
+        collection(db, col),
+        where("paymentStatus", "==", "success")
       );
-
-      const teams = teamSnap.docs.map((doc) => doc.data().teamName);
-      const slots = slotSnap.docs.map((doc) => doc.data());
-
-      setAllTeams(teams);
-      setAssignedSlots(slots);
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map((doc) => ({
+        teamName: doc.data().teamName,
+        userId: doc.data().userId,
+      }));
+      setTeams(data);
+      setTeamName("");
+      setUserId("");
     };
 
-    fetchData();
-  }, []);
+    fetchPaidTeams();
+  }, [type]);
 
-  // Filter teams not assigned yet
-  useEffect(() => {
-    const assignedTeamNames = assignedSlots.map((slot) => slot.teamName);
-    const available = allTeams.filter((name) => !assignedTeamNames.includes(name));
-    setAvailableTeams(available);
-  }, [allTeams, assignedSlots]);
+  const handleTeamSelect = (e) => {
+    const name = e.target.value;
+    setTeamName(name);
+    const team = teams.find((t) => t.teamName.trim() === name.trim());
+    setUserId(team?.userId || "");
+  };
 
-  const getNextSlotNo = () => 2 + assignedSlots.length;
-
-  const handleSubmit = async (e) => {
+  const handleAddSlot = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    const nextSlot = getNextSlotNo();
-
-    if (!selectedTeam) {
-      setError("Please select a team.");
-      return;
-    }
-
-    if (nextSlot > 24) {
-      setError("Maximum slots filled (Slot 2 to 24).");
-      return;
-    }
+    if (!type || !teamName || !slotNumber || !userId)
+      return alert("❌ Please fill all fields properly.");
 
     try {
-      await addDoc(collection(db, "assigned_slots"), {
-        slotNo: nextSlot,
-        teamName: selectedTeam,
-        timestamp: Timestamp.now(),
+      setLoading(true);
+      const targetCollection =
+        type === "weekly" ? "weekly_slots" : "daily_slots";
+
+      await addDoc(collection(db, targetCollection), {
+        teamName: teamName.trim(),
+        slotNumber: parseInt(slotNumber),
+        userId,
+        createdAt: Timestamp.now(),
       });
 
-      setSuccess(`Slot ${nextSlot} assigned to ${selectedTeam}`);
-      setSelectedTeam("");
-      // Refresh state
-      setAssignedSlots([...assignedSlots, { slotNo: nextSlot, teamName: selectedTeam }]);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to assign slot.");
+      setTeamName("");
+      setUserId("");
+      setSlotNumber("");
+      setSuccess("✅ Slot added successfully!");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (error) {
+      console.error("Error adding slot:", error);
+      alert("Something went wrong.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto bg-white p-6 shadow-lg mt-10 rounded">
-      <h2 className="text-xl font-bold mb-4 text-center">Assign Slot to Team</h2>
+    <div className="max-w-md mx-auto mt-10 bg-white shadow p-6 rounded">
+      <h2 className="text-2xl font-bold mb-4">➕ Assign Slot</h2>
 
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block font-medium mb-1">Select Team</label>
+      <form onSubmit={handleAddSlot} className="space-y-4">
+        <div>
+          <label className="block mb-1 font-medium">Select Type</label>
           <select
-            className="w-full border border-gray-300 rounded p-2"
-            value={selectedTeam}
-            onChange={(e) => setSelectedTeam(e.target.value)}
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="w-full border border-gray-300 p-2 rounded"
+            required
           >
-            <option value="">-- Select a Team --</option>
-            {availableTeams.map((team, index) => (
-              <option key={index} value={team}>
-                {team}
-              </option>
-            ))}
+            <option value="">-- Select --</option>
+            <option value="weekly">Weekly War</option>
+            <option value="daily">Daily Scrim</option>
           </select>
         </div>
 
-        <div className="mb-3 text-gray-700">
-          <strong>Next Slot:</strong> Slot {getNextSlotNo()}
-        </div>
+        {type && (
+          <div>
+            <label className="block mb-1 font-medium">Select Team</label>
+            <select
+              value={teamName}
+              onChange={handleTeamSelect}
+              className="w-full border border-gray-300 p-2 rounded"
+              required
+            >
+              <option value="">-- Select a Team --</option>
+              {teams.map((team, idx) => (
+                <option key={idx} value={team.teamName}>
+                  {team.teamName}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
-        {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
-        {success && <p className="text-green-600 text-sm mb-2">{success}</p>}
+        {userId && (
+          <div className="text-sm text-gray-600">
+            <strong>UID:</strong> {userId}
+          </div>
+        )}
+
+        <div>
+          <label className="block mb-1 font-medium">Slot Number</label>
+          <input
+            type="number"
+            className="w-full border border-gray-300 p-2 rounded"
+            value={slotNumber}
+            onChange={(e) => setSlotNumber(e.target.value)}
+            required
+          />
+        </div>
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-          disabled={getNextSlotNo() > 24 || availableTeams.length === 0}
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          Assign Slot
+          {loading ? "Adding..." : "Add Slot"}
         </button>
+
+        {success && <p className="text-green-600 mt-2">{success}</p>}
       </form>
     </div>
   );
-}
+};
 
-export default AddSlotPanel;
+export default AdminAddSlot;
