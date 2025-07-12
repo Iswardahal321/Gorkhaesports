@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { signOut } from "firebase/auth";
+import { signOut, updatePassword } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,9 @@ const UserProfileMenu = () => {
   const [newPhone, setNewPhone] = useState("");
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMessage, setPasswordMessage] = useState("");
 
   const ref = useRef(null);
   const user = auth.currentUser;
@@ -50,13 +53,33 @@ const UserProfileMenu = () => {
     setNewPhone("");
   };
 
+  const handlePasswordUpdate = async () => {
+    setPasswordMessage("");
+
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage("❌ Passwords do not match.");
+      return;
+    }
+
+    try {
+      await updatePassword(user, newPassword);
+      setPasswordMessage("✅ Password updated successfully.");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setShowPasswordModal(false), 1500);
+    } catch (error) {
+      console.error("Password update error:", error);
+      setPasswordMessage("❌ Failed to update password. Try re-login.");
+    }
+  };
+
   const handleLogout = async () => {
     await signOut(auth);
     navigate("/");
   };
 
   return (
-    <div className="relative z-50" ref={ref}>
+    <div className="absolute top-4 right-4 z-50" ref={ref}>
       {/* Avatar */}
       <button
         onClick={() => setShowOverlay(!showOverlay)}
@@ -65,9 +88,9 @@ const UserProfileMenu = () => {
         {user?.email?.charAt(0)?.toUpperCase() || "U"}
       </button>
 
-      {/* Dropdown Overlay */}
+      {/* Overlay Dropdown */}
       {showOverlay && (
-        <div className="absolute right-0 mt-3 bg-white shadow-xl rounded-md p-4 w-72 border z-50">
+        <div className="absolute top-12 right-0 bg-white shadow-xl rounded-md p-4 w-72 border z-50">
           <h2 className="text-lg font-bold mb-3">🙍‍♂️ User Profile</h2>
           <div className="text-sm text-gray-700 mb-2">
             <strong>Email:</strong> <br /> {user?.email}
@@ -135,13 +158,41 @@ const UserProfileMenu = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white p-5 rounded shadow-lg w-80">
             <h2 className="text-lg font-bold mb-3">🔐 Change Password</h2>
-            <p className="text-sm text-gray-600">Go to forgot password page.</p>
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => setShowPasswordModal(false)}
-                className="text-sm text-blue-600"
+
+            <input
+              type="password"
+              placeholder="New Password"
+              className="w-full px-3 py-2 border rounded mb-2"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              className="w-full px-3 py-2 border rounded mb-4"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+
+            {passwordMessage && (
+              <p
+                className={`text-sm ${
+                  passwordMessage.includes("✅")
+                    ? "text-green-600"
+                    : "text-red-600"
+                }`}
               >
-                Close
+                {passwordMessage}
+              </p>
+            )}
+
+            <div className="flex justify-end space-x-2 mt-2">
+              <button onClick={() => setShowPasswordModal(false)}>Cancel</button>
+              <button
+                onClick={handlePasswordUpdate}
+                className="bg-blue-600 text-white px-3 py-1 rounded"
+              >
+                Update
               </button>
             </div>
           </div>
