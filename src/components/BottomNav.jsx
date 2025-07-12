@@ -1,15 +1,20 @@
 import React from "react";
-import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
+import {
+  BottomNavigation,
+  BottomNavigationAction,
+  Paper,
+} from "@mui/material";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import ListAltIcon from "@mui/icons-material/ListAlt"; // slot list icon
+import ListAltIcon from "@mui/icons-material/ListAlt"; // Slot List icon
+import VpnKeyIcon from "@mui/icons-material/VpnKey"; // ID Pass icon
 import { useLocation, useNavigate } from "react-router-dom";
 
 function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const routes = ["/add-team", "/dashboard", "/slot-list"];
+  const routes = ["/add-team", "/dashboard", "/slot-list", "/id-pass"];
   const currentTab = routes.indexOf(location.pathname);
 
   const handleChange = (event, newValue) => {
@@ -36,6 +41,7 @@ function BottomNav() {
         <BottomNavigationAction label="Team" icon={<GroupAddIcon />} />
         <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} />
         <BottomNavigationAction label="Slot List" icon={<ListAltIcon />} />
+        <BottomNavigationAction label="ID Pass" icon={<VpnKeyIcon />} />
       </BottomNavigation>
     </Paper>
   );
