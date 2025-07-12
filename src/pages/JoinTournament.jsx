@@ -1,129 +1,82 @@
-import React, { useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase/config";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { doc, getDoc, addDoc, collection } from "firebase/firestore";
+import { db, auth } from "../firebase/config";
+import { loadScript } from "../utils/loadScript"; // Step 4 👇
 
-function JoinTournament() {
-  const [tournamentCode, setTournamentCode] = useState("");
-  const [teamName, setTeamName] = useState("");
-  const [fee, setFee] = useState(null);
-  const [tournamentName, setTournamentName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [feeFetched, setFeeFetched] = useState(false);
+const JoinTournament = () => {
+  const { id } = useParams();
+  const [tournament, setTournament] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const fetchFee = async () => {
-    if (!tournamentCode) return alert("Enter tournament code first");
-
-    try {
-      setLoading(true);
-      const docRef = doc(db, "tournaments", tournamentCode);
-      const snap = await getDoc(docRef);
-
-      if (snap.exists()) {
-        const data = snap.data();
-        setFee(data.fee || 0);
-        setTournamentName(data.name || "Unnamed Tournament");
-        setFeeFetched(true);
-      } else {
-        alert("❌ Tournament not found");
-        setFee(null);
-        setFeeFetched(false);
+  useEffect(() => {
+    const fetchTournament = async () => {
+      try {
+        const docRef = doc(db, "tournaments", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setTournament({ id: docSnap.id, ...docSnap.data() });
+        }
+      } catch (error) {
+        console.error("Error fetching:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Error fetching fee:", err);
-      alert("Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const handlePayment = () => {
+    fetchTournament();
+  }, [id]);
+
+  const handlePayment = async () => {
+    await loadScript("https://checkout.razorpay.com/v1/checkout.js");
+
+    const user = auth.currentUser;
+
     const options = {
-      key: "rzp_test_AvXRP4rfovLSun",
-      amount: fee * 100,
+      key: "rzp_test_AvXRP4rfovLSun", // ✅ Your API key
+      amount: tournament.entryFee * 100,
       currency: "INR",
       name: "Gorkha Esports",
-      description: `Entry for ${tournamentName}`,
-      handler: function (response) {
-        alert("✅ Payment Successful\nID: " + response.razorpay_payment_id);
-        // TODO: Save payment info in Firestore
+      description: tournament.name,
+      handler: async function (response) {
+        // ✅ Firestore save
+        await addDoc(collection(db, "tournament_joins"), {
+          tournamentId: tournament.id,
+          userId: user.uid,
+          email: user.email,
+          paymentId: response.razorpay_payment_id,
+          joinedAt: new Date(),
+        });
+        alert("Tournament Joined Successfully!");
       },
       prefill: {
-        name: teamName,
-        email: "user@example.com",
-        contact: "9999999999",
+        name: user.displayName || "User",
+        email: user.email,
       },
-      notes: {
-        tournament_code: tournamentCode,
-        team_name: teamName,
-      },
-      theme: { color: "#22c55e" },
+      theme: { color: "#3399cc" },
     };
 
     const rzp = new window.Razorpay(options);
     rzp.open();
   };
 
+  if (loading) return <p className="text-center mt-10">Loading...</p>;
+  if (!tournament) return <p className="text-center mt-10">Tournament not found.</p>;
+
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-gray-100 p-6 rounded shadow-md">
-        <h2 className="text-2xl font-bold mb-4 text-center">Join Tournament</h2>
+    <div className="p-4 max-w-md mx-auto bg-white shadow-md rounded">
+      <h2 className="text-2xl font-bold mb-4">{tournament.name}</h2>
+      <p className="mb-2">Type: {tournament.type}</p>
+      <p className="mb-4">💰 Entry Fee: ₹{tournament.entryFee}</p>
 
-        {/* Tournament Code */}
-        <div className="mb-3">
-          <label className="block text-gray-700 font-semibold mb-1">Tournament Code</label>
-          <input
-            type="text"
-            value={tournamentCode}
-            onChange={(e) => {
-              setTournamentCode(e.target.value);
-              setFee(null);
-              setFeeFetched(false);
-            }}
-            className="w-full px-3 py-2 border rounded"
-            required
-          />
-          <button
-            onClick={fetchFee}
-            className="mt-2 bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700"
-          >
-            Fetch Tournament Details
-          </button>
-        </div>
-
-        {/* Fee Display */}
-        {feeFetched && (
-          <>
-            <div className="mb-3 text-sm text-gray-700">
-              <strong>Tournament:</strong> {tournamentName}
-              <br />
-              <strong>Entry Fee:</strong> ₹{fee}
-            </div>
-
-            {/* Team Name Input */}
-            <div className="mb-3">
-              <label className="block text-gray-700 font-semibold mb-1">Team Name</label>
-              <input
-                type="text"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                className="w-full px-3 py-2 border rounded"
-                required
-              />
-            </div>
-
-            {/* Pay & Join */}
-            <button
-              disabled={!teamName || loading}
-              onClick={handlePayment}
-              className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
-            >
-              Pay ₹{fee} & Join
-            </button>
-          </>
-        )}
-      </div>
+      <button
+        onClick={handlePayment}
+        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+      >
+        Pay & Join Tournament
+      </button>
     </div>
   );
-}
+};
 
 export default JoinTournament;
