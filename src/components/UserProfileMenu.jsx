@@ -5,13 +5,15 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
 } from "firebase/auth";
-import { doc, getDoc, getDocs, setDoc, collection } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
 
 const UserProfileMenu = () => {
   const [showOverlay, setShowOverlay] = useState(false);
   const [phone, setPhone] = useState("");
+  const [dailySlot, setDailySlot] = useState("Not assigned");
+  const [weeklySlot, setWeeklySlot] = useState("Not assigned");
   const [newPhone, setNewPhone] = useState("");
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -19,8 +21,6 @@ const UserProfileMenu = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMessage, setPasswordMessage] = useState("");
-  const [weeklySlot, setWeeklySlot] = useState(null);
-  const [dailySlot, setDailySlot] = useState(null);
 
   const ref = useRef(null);
   const user = auth.currentUser;
@@ -47,22 +47,18 @@ const UserProfileMenu = () => {
         setPhone(data.phone || "");
       }
 
-      // 🔁 Fetch Weekly Slot
-      const weeklySnap = await getDocs(collection(db, "slots_weekly"));
-      const weeklyData = weeklySnap.docs.find(
-        (doc) => doc.data().userId === user.uid
-      );
-      if (weeklyData) {
-        setWeeklySlot(weeklyData.data().slotNumber || "Assigned");
+      // ✅ Fetch from daily_slots
+      const dailySnap = await getDocs(collection(db, "daily_slots"));
+      const daily = dailySnap.docs.find((doc) => doc.data().userId === user.uid);
+      if (daily) {
+        setDailySlot(daily.data().slotNumber || "Assigned");
       }
 
-      // 🔁 Fetch Daily Slot
-      const dailySnap = await getDocs(collection(db, "slots_daily"));
-      const dailyData = dailySnap.docs.find(
-        (doc) => doc.data().userId === user.uid
-      );
-      if (dailyData) {
-        setDailySlot(dailyData.data().slotNumber || "Assigned");
+      // ✅ Fetch from weekly_slots
+      const weeklySnap = await getDocs(collection(db, "weekly_slots"));
+      const weekly = weeklySnap.docs.find((doc) => doc.data().userId === user.uid);
+      if (weekly) {
+        setWeeklySlot(weekly.data().slotNumber || "Assigned");
       }
     };
 
@@ -86,10 +82,7 @@ const UserProfileMenu = () => {
     }
 
     try {
-      const credential = EmailAuthProvider.credential(
-        user.email,
-        currentPassword
-      );
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
       setPasswordMessage("✅ Password updated successfully.");
@@ -99,7 +92,7 @@ const UserProfileMenu = () => {
       setTimeout(() => setShowPasswordModal(false), 1500);
     } catch (error) {
       console.error("Password update error:", error);
-      setPasswordMessage("❌ Failed to update password.");
+      setPasswordMessage("❌ Failed to update password. Try re-login or check password.");
     }
   };
 
@@ -118,7 +111,7 @@ const UserProfileMenu = () => {
         {user?.email?.charAt(0)?.toUpperCase() || "U"}
       </button>
 
-      {/* Dropdown */}
+      {/* Overlay */}
       {showOverlay && (
         <div className="absolute top-12 right-0 bg-white shadow-xl rounded-md p-4 w-72 border z-50">
           <h2 className="text-lg font-bold mb-3">🙍‍♂️ User Profile</h2>
@@ -126,32 +119,21 @@ const UserProfileMenu = () => {
           <div className="text-sm text-gray-700 mb-2">
             <strong>Email:</strong> <br /> {user?.email}
           </div>
-
           <div className="text-sm text-gray-700 mb-2 break-all">
             <strong>UID:</strong> <br /> {user?.uid}
           </div>
 
-          {/* 📊 Slot Info Table */}
+          <div className="text-sm text-gray-700 mb-2">
+            <strong>📋 Daily Scrim Slot:</strong> <br />{" "}
+            {dailySlot ? `#${dailySlot}` : "Not Assigned"}
+          </div>
           <div className="text-sm text-gray-700 mb-3">
-            <strong>Slot Number</strong>
-            <table className="w-full mt-1 border text-center text-sm">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="py-1 border">Daily Scrim</th>
-                  <th className="py-1 border">Weekly War</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="py-1 border">{dailySlot || "Not assigned"}</td>
-                  <td className="py-1 border">{weeklySlot || "Not assigned"}</td>
-                </tr>
-              </tbody>
-            </table>
+            <strong>📋 Weekly War Slot:</strong> <br />{" "}
+            {weeklySlot ? `#${weeklySlot}` : "Not Assigned"}
           </div>
 
           <div className="text-sm text-gray-700 mb-3">
-            <strong>Phone:</strong> <br /> {phone || "Not added"}
+            <strong>📞 Phone:</strong> <br /> {phone || "Not added"}
           </div>
 
           <button
@@ -177,7 +159,7 @@ const UserProfileMenu = () => {
         </div>
       )}
 
-      {/* 📞 Phone Modal */}
+      {/* Phone Modal */}
       {showPhoneModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white p-5 rounded shadow-lg w-80">
@@ -202,12 +184,11 @@ const UserProfileMenu = () => {
         </div>
       )}
 
-      {/* 🔐 Password Modal */}
+      {/* Password Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white p-5 rounded shadow-lg w-80">
             <h2 className="text-lg font-bold mb-3">🔐 Change Password</h2>
-
             <input
               type="password"
               placeholder="Current Password"
@@ -232,9 +213,7 @@ const UserProfileMenu = () => {
             {passwordMessage && (
               <p
                 className={`text-sm ${
-                  passwordMessage.includes("✅")
-                    ? "text-green-600"
-                    : "text-red-500"
+                  passwordMessage.includes("✅") ? "text-green-600" : "text-red-500"
                 }`}
               >
                 {passwordMessage}
@@ -245,9 +224,7 @@ const UserProfileMenu = () => {
               <button
                 onClick={handlePasswordUpdate}
                 className="bg-blue-600 text-white px-3 py-1 rounded"
-                disabled={
-                  !currentPassword || !newPassword || !confirmPassword
-                }
+                disabled={!currentPassword || !newPassword || !confirmPassword}
               >
                 Update
               </button>
