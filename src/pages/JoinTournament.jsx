@@ -2,12 +2,20 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { doc, getDoc, addDoc, collection } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
-import loadScript from "../utils/loadScript"; // ✅ Fixed default import
+import { loadScript } from "../utils/loadScript";
 
 const JoinTournament = () => {
   const { id } = useParams();
   const [tournament, setTournament] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null); // ✅ Store user safely
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((u) => {
+      setUser(u); // ✅ Auth-safe user
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const fetchTournament = async () => {
@@ -23,31 +31,36 @@ const JoinTournament = () => {
         setLoading(false);
       }
     };
-
     fetchTournament();
   }, [id]);
 
   const handlePayment = async () => {
     await loadScript("https://checkout.razorpay.com/v1/checkout.js");
 
-    const user = auth.currentUser;
+    if (!user) {
+      alert("Please log in again");
+      return;
+    }
 
     const options = {
-      key: "rzp_test_AvXRP4rfovLSun", // ✅ Your test Razorpay API key
-      amount: tournament.entryFee * 100, // Amount in paisa
+      key: "rzp_test_AvXRP4rfovLSun",
+      amount: tournament.entryFee * 100,
       currency: "INR",
       name: "Gorkha Esports",
       description: tournament.name,
       handler: async function (response) {
-        // ✅ Store payment success in Firestore
-        await addDoc(collection(db, "tournament_joins"), {
-          tournamentId: tournament.id,
-          userId: user.uid,
-          email: user.email,
-          paymentId: response.razorpay_payment_id,
-          joinedAt: new Date(),
-        });
-        alert("✅ Tournament Joined Successfully!");
+        try {
+          await addDoc(collection(db, "tournament_joins"), {
+            tournamentId: tournament.id,
+            userId: user.uid,
+            email: user.email,
+            paymentId: response.razorpay_payment_id,
+            joinedAt: new Date(),
+          });
+          alert("Tournament Joined Successfully!");
+        } catch (err) {
+          alert("Join failed. Try again.");
+        }
       },
       prefill: {
         name: user.displayName || "User",
