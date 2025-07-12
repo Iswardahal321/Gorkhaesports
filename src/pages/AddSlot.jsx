@@ -2,166 +2,148 @@ import React, { useEffect, useState } from "react";
 import { db } from "../firebase/config";
 import {
   collection,
-  getDocs,
   addDoc,
-  deleteDoc,
-  doc,
+  getDocs,
+  Timestamp,
+  query,
+  where,
 } from "firebase/firestore";
 
-function AddSlotPanel() {
+const AdminAddSlot = () => {
+  const [type, setType] = useState(""); // "weekly" or "daily"
   const [teams, setTeams] = useState([]);
-  const [assignedSlots, setAssignedSlots] = useState([]);
-  const [selectedTeam, setSelectedTeam] = useState("");
+  const [teamName, setTeamName] = useState("");
+  const [userId, setUserId] = useState("");
+  const [slotNumber, setSlotNumber] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState("");
 
-  // Fetch teams and assigned slots
+  // 🔁 Fetch teams when type changes
   useEffect(() => {
-    const fetchTeams = async () => {
-      const snapshot = await getDocs(collection(db, "teams"));
-      const teamList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        name: doc.data().teamName,
-      }));
-      setTeams(teamList);
-    };
-
-    const fetchAssignedSlots = async () => {
-      const snapshot = await getDocs(collection(db, "slots"));
-      const slots = snapshot.docs.map((doc) => ({
-        id: doc.id,
+    const fetchPaidTeams = async () => {
+      if (!type) return;
+      const col = type === "weekly" ? "games_weekly" : "games_daily";
+      const q = query(
+        collection(db, col),
+        where("paymentStatus", "==", "success")
+      );
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map((doc) => ({
         teamName: doc.data().teamName,
-        slotNo: doc.data().slotNo,
+        userId: doc.data().userId,
       }));
-      setAssignedSlots(slots);
+      setTeams(data);
+      setTeamName("");
+      setUserId("");
     };
 
-    fetchTeams();
-    fetchAssignedSlots();
-  }, []);
+    fetchPaidTeams();
+  }, [type]);
 
-  const getNextSlotNumber = () => {
-    const existingSlotNumbers = assignedSlots.map((s) => s.slotNo);
-    for (let i = 2; i <= 24; i++) {
-      if (!existingSlotNumbers.includes(`slot${i}`)) {
-        return `slot${i}`;
-      }
-    }
-    return null;
+  const handleTeamSelect = (e) => {
+    const name = e.target.value;
+    setTeamName(name);
+    const team = teams.find((t) => t.teamName.trim() === name.trim());
+    setUserId(team?.userId || "");
   };
 
-  const handleAssign = async () => {
-    setMessage("");
-    if (!selectedTeam) {
-      setMessage("❌ Please select a team.");
-      return;
-    }
+  const handleAddSlot = async (e) => {
+    e.preventDefault();
+    if (!type || !teamName || !slotNumber || !userId)
+      return alert("❌ Please fill all fields properly.");
 
-    if (assignedSlots.find((s) => s.teamName === selectedTeam)) {
-      setMessage("⚠️ This team is already assigned a slot.");
-      return;
-    }
-
-    const nextSlot = getNextSlotNumber();
-    if (!nextSlot) {
-      setMessage("❌ Maximum 23 slots already assigned.");
-      return;
-    }
-
-    setLoading(true);
     try {
-      const docRef = await addDoc(collection(db, "slots"), {
-        teamName: selectedTeam,
-        slotNo: nextSlot,
-        createdAt: new Date(),
+      setLoading(true);
+      const targetCollection =
+        type === "weekly" ? "weekly_slots" : "daily_slots";
+
+      await addDoc(collection(db, targetCollection), {
+        teamName: teamName.trim(),
+        slotNumber: parseInt(slotNumber),
+        userId,
+        createdAt: Timestamp.now(),
       });
-      setMessage(`✅ Slot assigned: ${nextSlot}`);
-      setAssignedSlots((prev) => [
-        ...prev,
-        { id: docRef.id, teamName: selectedTeam, slotNo: nextSlot },
-      ]);
-      setSelectedTeam("");
-    } catch (err) {
-      console.error(err);
-      setMessage("❌ Failed to assign slot.");
-    }
-    setLoading(false);
-  };
 
-  const handleDelete = async (id) => {
-    try {
-      await deleteDoc(doc(db, "slots", id));
-      setAssignedSlots((prev) => prev.filter((s) => s.id !== id));
+      setTeamName("");
+      setUserId("");
+      setSlotNumber("");
+      setSuccess("✅ Slot added successfully!");
+      setTimeout(() => setSuccess(""), 3000);
     } catch (error) {
-      console.error("❌ Failed to delete slot:", error);
-      alert("❌ Failed to delete slot.");
+      console.error("Error adding slot:", error);
+      alert("Something went wrong.");
+    } finally {
+      setLoading(false);
     }
   };
-
-  const availableTeams = teams.filter(
-    (team) => !assignedSlots.some((s) => s.teamName === team.name)
-  );
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-xl">
-        <h2 className="text-2xl font-semibold mb-4 text-center">Assign Slot to Team</h2>
+    <div className="max-w-md mx-auto mt-10 bg-white shadow p-6 rounded">
+      <h2 className="text-2xl font-bold mb-4">➕ Assign Slot</h2>
 
-        <div className="mb-4">
-          <label className="block mb-1 font-medium">Select Team</label>
+      <form onSubmit={handleAddSlot} className="space-y-4">
+        <div>
+          <label className="block mb-1 font-medium">Select Type</label>
           <select
-            className="w-full p-2 border rounded"
-            value={selectedTeam}
-            onChange={(e) => setSelectedTeam(e.target.value)}
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="w-full border border-gray-300 p-2 rounded"
+            required
           >
-            <option value="">-- Select a Team --</option>
-            {availableTeams.map((team) => (
-              <option key={team.id} value={team.name}>
-                {team.name}
-              </option>
-            ))}
+            <option value="">-- Select --</option>
+            <option value="weekly">Weekly War</option>
+            <option value="daily">Daily Scrim</option>
           </select>
         </div>
 
-        {message && (
-          <p
-            className={`text-sm mb-3 ${
-              message.includes("✅") ? "text-green-600" : "text-red-500"
-            }`}
-          >
-            {message}
-          </p>
+        {type && (
+          <div>
+            <label className="block mb-1 font-medium">Select Team</label>
+            <select
+              value={teamName}
+              onChange={handleTeamSelect}
+              className="w-full border border-gray-300 p-2 rounded"
+              required
+            >
+              <option value="">-- Select a Team --</option>
+              {teams.map((team, idx) => (
+                <option key={idx} value={team.teamName}>
+                  {team.teamName}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
 
+        {userId && (
+          <div className="text-sm text-gray-600">
+            <strong>UID:</strong> {userId}
+          </div>
+        )}
+
+        <div>
+          <label className="block mb-1 font-medium">Slot Number</label>
+          <input
+            type="number"
+            className="w-full border border-gray-300 p-2 rounded"
+            value={slotNumber}
+            onChange={(e) => setSlotNumber(e.target.value)}
+            required
+          />
+        </div>
+
         <button
-          onClick={handleAssign}
-          className="bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700"
+          type="submit"
           disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          {loading ? "Assigning..." : "Assign Slot"}
+          {loading ? "Adding..." : "Add Slot"}
         </button>
 
-        <div className="mt-6">
-          <h4 className="text-lg font-medium mb-2">🗂️ Assigned Slots:</h4>
-          <ul className="text-sm text-gray-700 space-y-2">
-            {assignedSlots.map((s) => (
-              <li key={s.id} className="flex justify-between items-center border-b py-1">
-                <span>
-                  {s.slotNo} → {s.teamName}
-                </span>
-                <button
-                  onClick={() => handleDelete(s.id)}
-                  className="text-red-600 hover:text-red-800 text-xs"
-                >
-                  ❌ Delete
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+        {success && <p className="text-green-600 mt-2">{success}</p>}
+      </form>
     </div>
   );
-}
+};
 
-export default AddSlotPanel;
+export default AdminAddSlot;
