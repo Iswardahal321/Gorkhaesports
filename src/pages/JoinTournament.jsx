@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   doc,
   getDoc,
@@ -14,10 +14,11 @@ import { loadScript } from "../utils/loadScript";
 
 const JoinTournament = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [tournament, setTournament] = useState(null);
   const [loading, setLoading] = useState(true);
   const [joinInfo, setJoinInfo] = useState(null);
-  const [message, setMessage] = useState(null); // ✅ success or error
+  const [message, setMessage] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -93,7 +94,7 @@ const JoinTournament = () => {
             type: tournament.type,
             fee: tournament.entryFee,
           });
-          showMessage("✅ Tournament Joined Successfully!", "success");
+          showMessage("✅ Joined successfully!", "success");
         },
         prefill: {
           name: user.displayName || "User",
@@ -135,8 +136,8 @@ const JoinTournament = () => {
 
       {joinInfo ? (
         <div className="p-4 bg-green-100 rounded">
-          <p className="text-green-700 font-semibold"> 🗃️ Your joining details</p>
-          <p className="text-sm mt-1">🆔 Payment ID: {joinInfo.paymentId}</p>
+          <h3 className="text-lg font-semibold text-green-700 mb-2">🎫 Payment Details</h3>
+          <p className="text-sm">🆔 Payment ID: {joinInfo.paymentId}</p>
           <p className="text-sm">🎮 Type: {joinInfo.type}</p>
           <p className="text-sm">💰 Paid: ₹{joinInfo.fee}</p>
         </div>
@@ -148,6 +149,15 @@ const JoinTournament = () => {
           Pay & Join Tournament
         </button>
       )}
+
+      <div className="mt-6 text-center">
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="text-blue-600 hover:underline text-sm"
+        >
+          ← Back to Dashboard
+        </button>
+      </div>
     </div>
   );
 };
