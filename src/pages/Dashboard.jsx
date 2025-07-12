@@ -40,9 +40,9 @@ const Dashboard = () => {
     fetchTournaments();
   }, []);
 
-  // ✅ Fixed navigation path
   const handleJoin = (type, id) => {
-    navigate(`/join-tournament/${id}`);
+    const normalizedType = type.toLowerCase().replace(/\s/g, ""); // ✅ Updated here
+    navigate(`/join-tournament/${normalizedType}/${id}`);
   };
 
   const toggleCard = (index) => {
@@ -84,7 +84,7 @@ const Dashboard = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleJoin(game.type, game.id); // ✅ Correct route
+                          handleJoin(game.type, game.id);
                         }}
                         className="bg-yellow-500 text-white font-bold py-2 px-6 rounded hover:bg-yellow-600 transition duration-300"
                       >
