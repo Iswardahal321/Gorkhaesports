@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { db } from "../firebase/config";
 import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
+import { db } from "../firebase/config";
 
 const AdminAddSlot = () => {
   const [teams, setTeams] = useState([]);
@@ -12,10 +12,10 @@ const AdminAddSlot = () => {
   useEffect(() => {
     const fetchTeams = async () => {
       const snap = await getDocs(collection(db, "teams"));
-      const list = snap.docs.map((doc) => ({
+      const list = snap.docs.map(doc => ({
         id: doc.id,
         teamName: doc.data().teamName,
-        userId: doc.data().userId, // ✅ Correct field name
+        userId: doc.data().userId
       }));
       setTeams(list);
     };
@@ -23,29 +23,26 @@ const AdminAddSlot = () => {
     fetchTeams();
   }, []);
 
-  const handleAddSlot = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedTeam || !slotNumber) {
-      alert("❌ Please select a team and slot number.");
-      return;
-    }
+    if (!selectedTeam || !slotNumber) return alert("❌ Fill all fields");
 
     try {
       setLoading(true);
       await addDoc(collection(db, "slots"), {
-        slotNumber: parseInt(slotNumber),
         teamName: selectedTeam.teamName,
-        userId: selectedTeam.userId, // ✅ Correct field used
+        userId: selectedTeam.userId,
+        slotNumber: parseInt(slotNumber),
         createdAt: Timestamp.now(),
       });
 
       setSlotNumber("");
       setSelectedTeam(null);
-      setSuccess("✅ Slot added successfully!");
+      setSuccess("✅ Slot assigned successfully!");
       setTimeout(() => setSuccess(""), 3000);
     } catch (error) {
-      console.error("Error adding slot:", error);
-      alert("Something went wrong.");
+      console.error("❌ Error adding slot:", error);
+      alert("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -53,22 +50,23 @@ const AdminAddSlot = () => {
 
   return (
     <div className="max-w-md mx-auto mt-10 bg-white shadow p-6 rounded">
-      <h2 className="text-2xl font-bold mb-4">➕ Assign Slot to Team</h2>
+      <h2 className="text-2xl font-bold mb-4">🎯 Assign Slot</h2>
 
-      <form onSubmit={handleAddSlot} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block mb-1 font-medium">Select Team</label>
+          <label className="block mb-1 font-medium">Team</label>
           <select
             className="w-full border p-2 rounded"
-            value={selectedTeam?.id || ""}
+            value={selectedTeam?.teamName || ""}
             onChange={(e) => {
-              const team = teams.find((t) => t.id === e.target.value);
+              const team = teams.find(t => t.teamName === e.target.value);
               setSelectedTeam(team || null);
             }}
+            required
           >
             <option value="">-- Select Team --</option>
             {teams.map((team) => (
-              <option key={team.id} value={team.id}>
+              <option key={team.id} value={team.teamName}>
                 {team.teamName}
               </option>
             ))}
@@ -76,16 +74,16 @@ const AdminAddSlot = () => {
         </div>
 
         {selectedTeam && (
-          <p className="text-sm text-gray-600">
-            <strong>Team User ID:</strong> {selectedTeam.userId}
-          </p>
+          <div className="text-sm text-gray-600">
+            <p><strong>UID:</strong> {selectedTeam.userId}</p>
+          </div>
         )}
 
         <div>
           <label className="block mb-1 font-medium">Slot Number</label>
           <input
             type="number"
-            className="w-full border border-gray-300 p-2 rounded"
+            className="w-full border p-2 rounded"
             value={slotNumber}
             onChange={(e) => setSlotNumber(e.target.value)}
             required
@@ -97,7 +95,7 @@ const AdminAddSlot = () => {
           disabled={loading}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          {loading ? "Adding..." : "Add Slot"}
+          {loading ? "Adding..." : "Assign Slot"}
         </button>
 
         {success && <p className="text-green-600 mt-2">{success}</p>}
