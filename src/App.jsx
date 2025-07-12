@@ -8,7 +8,7 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase/config";
 
-// Pages
+// ✅ Pages
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -22,7 +22,7 @@ import AddGame from "./pages/AddGame.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
 import UploadResult from "./pages/UploadResult.jsx";
 
-// Components
+// ✅ Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
 import AdminRoute from "./components/AdminRoute.jsx";
 import Layout from "./components/Layout.jsx";
@@ -45,6 +45,7 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* ✅ Public Routes */}
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
@@ -70,7 +71,7 @@ function App() {
           }
         />
         <Route
-          path="/join-tournament/:id" // ✅ Fixed Razorpay dynamic ID route
+          path="/join-tournament/:id" // ✅ Dynamic Route for Razorpay Payment
           element={
             <PrivateRoute>
               <Layout>
@@ -152,7 +153,7 @@ function App() {
           }
         />
 
-        {/* Redirect any unknown route to login */}
+        {/* ✅ Fallback to login */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
