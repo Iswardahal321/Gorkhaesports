@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { db } from "../firebase/config";
+import {
+  doc,
+  onSnapshot,
+  collection,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
+import { db, auth } from "../firebase/config";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebase/config";
 
 const IDPass = () => {
   const [userId, setUserId] = useState(null);
@@ -14,62 +20,54 @@ const IDPass = () => {
   const [hasDailySlot, setHasDailySlot] = useState(false);
   const [hasWeeklySlot, setHasWeeklySlot] = useState(false);
 
-  // 🕒 Update clock every second
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  // ✅ Fetch Authenticated User
   useEffect(() => {
-    onAuthStateChanged(auth, async (user) => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserId(user.uid);
-      } else {
-        setUserId(null);
+        await checkSlots(user.uid);
+        setupLiveListeners();
       }
     });
+    return () => unsub();
   }, []);
 
-  // ✅ Check if slots assigned
   const checkSlots = async (uid) => {
     const dailyQ = query(collection(db, "daily_slots"), where("userId", "==", uid));
     const weeklyQ = query(collection(db, "weekly_slots"), where("userId", "==", uid));
 
     const [dailySnap, weeklySnap] = await Promise.all([getDocs(dailyQ), getDocs(weeklyQ)]);
-
     setHasDailySlot(!dailySnap.empty);
     setHasWeeklySlot(!weeklySnap.empty);
   };
 
-  // ✅ Fetch IDPs
-  const fetchIDPs = async () => {
-    if (!userId) return;
-    setLoading(true);
+  const setupLiveListeners = () => {
+    const unsubDaily = onSnapshot(doc(db, "daily_idp", "current"), (snap) => {
+      if (snap.exists() && snap.data().status === "active") {
+        setDaily(snap.data());
+      } else {
+        setDaily(null);
+      }
+      setLoading(false);
+    });
 
-    await checkSlots(userId);
+    const unsubWeekly = onSnapshot(doc(db, "weekly_idp", "current"), (snap) => {
+      if (snap.exists() && snap.data().status === "active") {
+        setWeekly(snap.data());
+      } else {
+        setWeekly(null);
+      }
+    });
 
-    const [dailySnap, weeklySnap] = await Promise.all([
-      getDoc(doc(db, "daily_idp", "current")),
-      getDoc(doc(db, "weekly_idp", "current")),
-    ]);
-
-    if (dailySnap.exists() && dailySnap.data().status === "active") {
-      setDaily(dailySnap.data());
-    }
-
-    if (weeklySnap.exists() && weeklySnap.data().status === "active") {
-      setWeekly(weeklySnap.data());
-    }
-
-    setLoading(false);
+    return () => {
+      unsubDaily();
+      unsubWeekly();
+    };
   };
-
-  useEffect(() => {
-    if (userId) {
-      fetchIDPs();
-    }
-  }, [userId]);
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
@@ -85,9 +83,15 @@ const IDPass = () => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const shouldShowIDP = (showTime) => {
+    return !showTime || showTime.toDate().getTime() <= now;
+  };
+
   const renderSection = (title, data, hasSlot) => {
-    const showTime = data?.showTime?.toDate?.().getTime?.();
-    const countdown = showTime ? formatCountdown(showTime) : null;
+    const showTime = data?.showTime;
+    const countdown = showTime && !shouldShowIDP(showTime)
+      ? formatCountdown(showTime.toDate().getTime())
+      : null;
 
     if (!hasSlot) {
       return (
@@ -99,14 +103,14 @@ const IDPass = () => {
     }
 
     return (
-      <div>
+      <div className="mb-6">
         <h3 className="text-lg font-semibold text-blue-700 mb-2">{title}</h3>
         {countdown ? (
-          <p className="text-orange-600 font-medium mb-3">
+          <p className="text-orange-600 font-medium mb-2">
             ⏳ Unlocking in: {countdown}
           </p>
         ) : (
-          <table className="w-full border-collapse border border-gray-300 mx-auto mb-6">
+          <table className="w-full border-collapse border border-gray-300">
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-2 border">Room ID</th>
