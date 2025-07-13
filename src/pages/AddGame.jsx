@@ -60,7 +60,11 @@ function AddGame() {
     }
 
     try {
-      const gameRef = doc(db, collectionName, gameType.toLowerCase().replace(" ", "_"));
+      const gameRef = doc(
+        db,
+        collectionName,
+        gameType.toLowerCase().replace(" ", "_")
+      );
       await setDoc(gameRef, {
         gameType,
         fee,
@@ -78,7 +82,9 @@ function AddGame() {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white shadow-md rounded-lg p-6 w-full max-w-xl">
-        <h2 className="text-2xl font-semibold mb-5 text-center">Add / Update Game</h2>
+        <h2 className="text-2xl font-semibold mb-5 text-center">
+          Add / Update Game
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -94,7 +100,7 @@ function AddGame() {
           </div>
 
           <div>
-            <label className="block mb-1 font-medium">Entry Fee (â‚¹)</label>
+            <label className="block mb-1 font-medium">Entry Fee (₹)</label>
             <input
               type="number"
               className="w-full p-2 border border-gray-300 rounded"
