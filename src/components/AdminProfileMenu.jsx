@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Menu,
   MenuItem,
@@ -8,6 +8,9 @@ import {
   TextField,
   DialogActions,
   Button,
+  Switch,
+  Typography,
+  Box,
 } from "@mui/material";
 import Avatar from "@mui/material/Avatar";
 import { useNavigate } from "react-router-dom";
@@ -17,7 +20,8 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
 } from "firebase/auth";
-import { auth } from "../firebase/config";
+import { auth, db } from "../firebase/config";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 const AdminProfileMenu = ({ user }) => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -25,6 +29,10 @@ const AdminProfileMenu = ({ user }) => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
+
+  const [dailyStatus, setDailyStatus] = useState(false);
+  const [weeklyStatus, setWeeklyStatus] = useState(false);
+
   const navigate = useNavigate();
 
   const handleOpen = (event) => setAnchorEl(event.currentTarget);
@@ -37,15 +45,14 @@ const AdminProfileMenu = ({ user }) => {
 
   const handlePasswordChange = async () => {
     setMessage("");
-
     const userAuth = auth.currentUser;
-    const credential = EmailAuthProvider.credential(userAuth.email, currentPassword);
+    const credential = EmailAuthProvider.credential(
+      userAuth.email,
+      currentPassword
+    );
 
     try {
-      // 🔁 Reauthenticate
       await reauthenticateWithCredential(userAuth, credential);
-
-      // 🔐 Update Password
       await updatePassword(userAuth, newPassword);
       setMessage("✅ Password updated successfully.");
       setOpenDialog(false);
@@ -57,6 +64,50 @@ const AdminProfileMenu = ({ user }) => {
     }
   };
 
+  const fetchStatus = async () => {
+    try {
+      const dailyRef = doc(db, "daily_idp", "main");
+      const weeklyRef = doc(db, "weekly_idp", "main");
+
+      const dailySnap = await getDoc(dailyRef);
+      const weeklySnap = await getDoc(weeklyRef);
+
+      if (dailySnap.exists()) {
+        setDailyStatus(dailySnap.data().status === "active");
+      }
+      if (weeklySnap.exists()) {
+        setWeeklyStatus(weeklySnap.data().status === "active");
+      }
+    } catch (err) {
+      console.error("❌ Failed to fetch status:", err);
+    }
+  };
+
+  const toggleStatus = async (type) => {
+    try {
+      const ref = doc(db, type === "daily" ? "daily_idp" : "weekly_idp", "main");
+      const newStatus = type === "daily" ? !dailyStatus : !weeklyStatus;
+
+      await updateDoc(ref, {
+        status: newStatus ? "active" : "inactive",
+      });
+
+      if (type === "daily") {
+        setDailyStatus(newStatus);
+      } else {
+        setWeeklyStatus(newStatus);
+      }
+    } catch (err) {
+      console.error("❌ Failed to update status:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchStatus();
+    }
+  }, [user]);
+
   return (
     <div className="absolute top-4 right-4">
       <Avatar onClick={handleOpen} sx={{ cursor: "pointer", bgcolor: "#1976d2" }}>
@@ -67,6 +118,31 @@ const AdminProfileMenu = ({ user }) => {
         <MenuItem disabled>
           <strong>Email:</strong>&nbsp; {user?.email}
         </MenuItem>
+
+        <Box px={2} py={1}>
+          <Typography fontWeight={600}>DAILY IDP</Typography>
+          <Switch
+            checked={dailyStatus}
+            onChange={() => toggleStatus("daily")}
+            color="primary"
+          />
+          <Typography variant="caption" color="textSecondary">
+            {dailyStatus ? "Active" : "Inactive"}
+          </Typography>
+
+          <Typography fontWeight={600} mt={2}>
+            WEEKLY IDP
+          </Typography>
+          <Switch
+            checked={weeklyStatus}
+            onChange={() => toggleStatus("weekly")}
+            color="primary"
+          />
+          <Typography variant="caption" color="textSecondary">
+            {weeklyStatus ? "Active" : "Inactive"}
+          </Typography>
+        </Box>
+
         <MenuItem
           onClick={() => {
             setOpenDialog(true);
