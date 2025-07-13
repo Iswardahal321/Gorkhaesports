@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   addDoc,
   collection,
+  Timestamp,
   query,
   where,
-  getDocs,
-  Timestamp,
-  updateDoc,
-  doc,
+  orderBy,
+  limit,
+  onSnapshot,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 
@@ -16,43 +16,38 @@ const AdminAddIDPass = () => {
   const [password, setPassword] = useState("");
   const [type, setType] = useState("Weekly War");
   const [showTime, setShowTime] = useState("");
-  const [activeDocId, setActiveDocId] = useState(null);
-  const [isActive, setIsActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
+  const [active, setActive] = useState(false);
 
-  // 🔁 Fetch latest active data on type change
+  // ✅ Fetch existing active ID/Pass when type changes
   useEffect(() => {
-    const fetchData = async () => {
-      const q = query(
-        collection(db, "id_pass"),
-        where("type", "==", type),
-        where("active", "==", true)
-      );
-      const snapshot = await getDocs(q);
+    const q = query(
+      collection(db, "id_pass"),
+      where("type", "==", type),
+      where("active", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(1)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
-        const docData = snapshot.docs[0];
-        const data = docData.data();
+        const data = snapshot.docs[0].data();
         setRoomId(data.roomId);
         setPassword(data.password);
-        setShowTime(
-          data.showTime.toDate().toISOString().slice(0, 16) // format for datetime-local
-        );
-        setActiveDocId(docData.id);
-        setIsActive(true);
+        setShowTime(data.showTime.toDate().toISOString().slice(0, 16)); // convert timestamp
+        setActive(true);
       } else {
         setRoomId("");
         setPassword("");
         setShowTime("");
-        setActiveDocId(null);
-        setIsActive(false);
+        setActive(false);
       }
-    };
+    });
 
-    fetchData();
+    return () => unsubscribe();
   }, [type]);
 
-  // ✅ Submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!roomId || !password || !showTime) {
@@ -62,32 +57,16 @@ const AdminAddIDPass = () => {
 
     try {
       setLoading(true);
-
-      // 🔁 Deactivate old active of same type
-      const q = query(
-        collection(db, "id_pass"),
-        where("type", "==", type),
-        where("active", "==", true)
-      );
-      const snapshot = await getDocs(q);
-      snapshot.forEach(async (d) => {
-        await updateDoc(doc(db, "id_pass", d.id), { active: false });
-      });
-
-      // ➕ Add new doc
-      const docRef = await addDoc(collection(db, "id_pass"), {
+      await addDoc(collection(db, "id_pass"), {
         roomId,
         password,
         type,
         showTime: Timestamp.fromDate(new Date(showTime)),
-        active: true,
         createdAt: Timestamp.now(),
+        active, // ✅ store toggle value
       });
-
-      setSuccess("✅ ID & Password added & set active!");
+      setSuccess("✅ ID & Password added!");
       setTimeout(() => setSuccess(""), 3000);
-      setActiveDocId(docRef.id);
-      setIsActive(true);
     } catch (err) {
       console.error(err);
       alert("❌ Failed to add.");
@@ -96,42 +75,10 @@ const AdminAddIDPass = () => {
     }
   };
 
-  // 🔄 Toggle activation
-  const toggleActive = async () => {
-    if (!activeDocId) return;
-    try {
-      await updateDoc(doc(db, "id_pass", activeDocId), {
-        active: !isActive,
-      });
-      setIsActive(!isActive);
-      setSuccess(`✅ ID ${!isActive ? "activated" : "deactivated"}!`);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to update status.");
-    }
-  };
-
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded shadow">
       <h2 className="text-xl font-bold mb-4">➕ Add Room ID & Password</h2>
 
-      {/* 🟢 Toggle */}
-      {activeDocId && (
-        <div className="flex items-center justify-between mb-4">
-          <span className="font-medium">Status: {isActive ? "✅ Active" : "⛔ Inactive"}</span>
-          <button
-            onClick={toggleActive}
-            className={`px-3 py-1 rounded ${
-              isActive ? "bg-red-600" : "bg-green-600"
-            } text-white`}
-          >
-            {isActive ? "Deactivate" : "Activate"}
-          </button>
-        </div>
-      )}
-
-      {/* 📝 Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block mb-1">Room ID</label>
@@ -143,6 +90,7 @@ const AdminAddIDPass = () => {
             required
           />
         </div>
+
         <div>
           <label className="block mb-1">Password</label>
           <input
@@ -153,6 +101,7 @@ const AdminAddIDPass = () => {
             required
           />
         </div>
+
         <div>
           <label className="block mb-1">Match Type</label>
           <select
@@ -164,6 +113,7 @@ const AdminAddIDPass = () => {
             <option value="Weekly War">Weekly War</option>
           </select>
         </div>
+
         <div>
           <label className="block mb-1">Show Time</label>
           <input
@@ -174,6 +124,20 @@ const AdminAddIDPass = () => {
             required
           />
         </div>
+
+        {/* ✅ Toggle Switch */}
+        <div className="flex items-center space-x-2">
+          <input
+            id="active-toggle"
+            type="checkbox"
+            checked={active}
+            onChange={(e) => setActive(e.target.checked)}
+          />
+          <label htmlFor="active-toggle" className="font-medium">
+            Active
+          </label>
+        </div>
+
         <button
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -181,6 +145,7 @@ const AdminAddIDPass = () => {
         >
           {loading ? "Adding..." : "Add ID & Password"}
         </button>
+
         {success && <p className="text-green-600 mt-2">{success}</p>}
       </form>
     </div>
