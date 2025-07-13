@@ -20,14 +20,13 @@ const IDPass = () => {
   const [hasDailySlot, setHasDailySlot] = useState(false);
   const [hasWeeklySlot, setHasWeeklySlot] = useState(false);
   const [spoken, setSpoken] = useState({ daily: false, weekly: false });
+  const [popupShown, setPopupShown] = useState({ daily: false, weekly: false });
 
-  // ✅ Timer updater
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ Auth and slot + listeners
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -90,7 +89,6 @@ const IDPass = () => {
     return !showTime || showTime.toDate().getTime() <= now;
   };
 
-  // ✅ 🔊 Sound alert & speech
   const playVoice = (label) => {
     if (spoken[label]) return;
     const msg = new SpeechSynthesisUtterance("Here is your room details. Please join fast.");
@@ -99,19 +97,26 @@ const IDPass = () => {
     setSpoken((prev) => ({ ...prev, [label]: true }));
   };
 
+  const showPopupOnce = (label) => {
+    if (!popupShown[label]) {
+      alert("ℹ️ Tip: Tap on Room ID or Password to copy it!");
+      setPopupShown((prev) => ({ ...prev, [label]: true }));
+    }
+  };
+
   const renderSection = (title, data, hasSlot, label) => {
     const showTime = data?.showTime;
     const unlockTime = showTime?.toDate().getTime() || 0;
     const isUnlocked = shouldShowIDP(showTime);
     const countdown = !isUnlocked ? formatCountdown(unlockTime) : null;
 
-    // Trigger voice alert
     if (isUnlocked && !spoken[label]) {
       playVoice(label);
+      showPopupOnce(label);
     }
 
     return (
-      <div className="mb-6 text-left">
+      <div className="mb-6 text-center">
         <h3 className="text-lg font-semibold text-blue-700 mb-2">{title}</h3>
 
         {!hasSlot ? (
@@ -121,11 +126,11 @@ const IDPass = () => {
             ⏳ Unlocking in: <span className="font-mono">{countdown}</span>
           </p>
         ) : (
-          <table className="w-full border-collapse border border-gray-300">
+          <table className="w-full border-collapse border border-gray-300 text-center">
             <thead className="bg-gray-100">
               <tr>
-                <th className="p-2 border">Room ID</th>
-                <th className="p-2 border">Password</th>
+                <th className="p-2 border text-center">Room ID</th>
+                <th className="p-2 border text-center">Password</th>
               </tr>
             </thead>
             <tbody>
