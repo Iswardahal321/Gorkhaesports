@@ -109,8 +109,8 @@ const IDPass = () => {
           <table className="w-full border-collapse border border-gray-300">
             <thead className="bg-gray-100">
               <tr>
-                <th className="p-2 border">Room ID</th>
-                <th className="p-2 border">Password</th>
+                <th className="p-2 border"><center>Room ID</center></th>
+                <th className="p-2 border"><center>Password</center></th>
               </tr>
             </thead>
             <tbody>
