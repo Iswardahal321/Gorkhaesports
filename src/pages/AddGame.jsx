@@ -21,7 +21,6 @@ function AddGame() {
   const collectionName =
     gameType === "Daily Scrim" ? "games_daily" : "games_weekly";
 
-  // Fetch existing data and pre-fill form
   useEffect(() => {
     const fetchGame = async () => {
       setError("");
@@ -60,12 +59,17 @@ function AddGame() {
     }
 
     try {
-      const gameRef = doc(db, collectionName, gameType.toLowerCase().replace(" ", "_"));
+      const gameRef = doc(
+        db,
+        collectionName,
+        gameType.toLowerCase().replace(" ", "_")
+      );
       await setDoc(gameRef, {
         gameType,
         fee,
         description,
         updatedAt: new Date(),
+        status: "active", // ✅ Auto-added
       });
 
       setSuccess("Game saved successfully.");
