@@ -6,7 +6,7 @@ const IDPass = () => {
   const [daily, setDaily] = useState(null);
   const [weekly, setWeekly] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [copyMessage, setCopyMessage] = useState(""); // ✅ NEW
+  const [copyMessage, setCopyMessage] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
@@ -37,17 +37,13 @@ const IDPass = () => {
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
     setCopyMessage(`✅ Copied: ${text}`);
-
-    setTimeout(() => {
-      setCopyMessage("");
-    }, 3000); // ✅ 3 seconds later remove message
+    setTimeout(() => setCopyMessage(""), 3000);
   };
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 p-6 bg-white shadow rounded">
+    <div className="max-w-lg mx-auto mt-10 p-6 bg-white shadow rounded">
       <h2 className="text-xl font-bold mb-4 text-center">🎮 Room ID & Password</h2>
 
-      {/* ✅ Success Copy Message */}
       {copyMessage && (
         <p className="text-green-600 font-medium text-center mb-4">{copyMessage}</p>
       )}
@@ -57,52 +53,56 @@ const IDPass = () => {
       ) : !daily && !weekly ? (
         <p className="text-center text-yellow-600">⚠️ No active Room ID found.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border border-gray-300">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-3 border">Match Type</th>
-                <th className="p-3 border">Room ID</th>
-                <th className="p-3 border">Password</th>
-              </tr>
-            </thead>
-            <tbody>
-              {daily && (
-                <tr>
-                  <td className="p-3 border font-semibold">Daily Scrim</td>
-                  <td
-                    className="p-3 border text-blue-700 cursor-pointer"
-                    onClick={() => handleCopy(daily.roomId)}
-                  >
-                    {daily.roomId}
-                  </td>
-                  <td
-                    className="p-3 border text-blue-700 cursor-pointer"
-                    onClick={() => handleCopy(daily.password)}
-                  >
-                    {daily.password}
-                  </td>
-                </tr>
-              )}
-              {weekly && (
-                <tr>
-                  <td className="p-3 border font-semibold">Weekly War</td>
-                  <td
-                    className="p-3 border text-blue-700 cursor-pointer"
-                    onClick={() => handleCopy(weekly.roomId)}
-                  >
-                    {weekly.roomId}
-                  </td>
-                  <td
-                    className="p-3 border text-blue-700 cursor-pointer"
-                    onClick={() => handleCopy(weekly.password)}
-                  >
-                    {weekly.password}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="space-y-8">
+          {/* ✅ Daily Scrim Section */}
+          {daily && (
+            <div className="bg-gray-50 p-4 rounded border">
+              <h3 className="text-lg font-semibold mb-3 text-blue-700">📅 Daily Scrim</h3>
+              <div className="flex justify-between mb-2">
+                <span className="font-medium">Room ID:</span>
+                <span
+                  className="text-blue-700 cursor-pointer"
+                  onClick={() => handleCopy(daily.roomId)}
+                >
+                  {daily.roomId}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Password:</span>
+                <span
+                  className="text-blue-700 cursor-pointer"
+                  onClick={() => handleCopy(daily.password)}
+                >
+                  {daily.password}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* ✅ Weekly War Section */}
+          {weekly && (
+            <div className="bg-gray-50 p-4 rounded border">
+              <h3 className="text-lg font-semibold mb-3 text-purple-700">🛡️ Weekly War</h3>
+              <div className="flex justify-between mb-2">
+                <span className="font-medium">Room ID:</span>
+                <span
+                  className="text-blue-700 cursor-pointer"
+                  onClick={() => handleCopy(weekly.roomId)}
+                >
+                  {weekly.roomId}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-medium">Password:</span>
+                <span
+                  className="text-blue-700 cursor-pointer"
+                  onClick={() => handleCopy(weekly.password)}
+                >
+                  {weekly.password}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
