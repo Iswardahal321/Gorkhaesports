@@ -1,3 +1,5 @@
+// 📁 src/pages/Dashboard.jsx
+
 import React, { useEffect, useState } from "react";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
@@ -40,8 +42,8 @@ const Dashboard = () => {
     const fetchStatuses = async () => {
       try {
         const [dailyDoc, weeklyDoc] = await Promise.all([
-          getDoc(doc(db, "daily_idp", "current")),
-          getDoc(doc(db, "weekly_idp", "current")),
+          getDoc(doc(db, "tournament_status", "daily_status")),
+          getDoc(doc(db, "tournament_status", "weekly_status")),
         ]);
 
         setStatusMap({
@@ -49,7 +51,7 @@ const Dashboard = () => {
           weekly: weeklyDoc.exists() && weeklyDoc.data().status === "active",
         });
       } catch (err) {
-        console.error("❌ Failed to fetch status:", err);
+        console.error("❌ Failed to fetch tournament_status:", err);
       }
     };
 
