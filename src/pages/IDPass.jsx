@@ -5,6 +5,29 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
 import { onAuthStateChanged } from "firebase/auth";
 
+const Timer = ({ showTime }) => {
+  const [remaining, setRemaining] = useState("");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const diff = new Date(showTime.seconds * 1000) - new Date();
+      if (diff <= 0) {
+        setRemaining("0");
+        clearInterval(interval);
+      } else {
+        const min = Math.floor(diff / 60000);
+        const sec = Math.floor((diff % 60000) / 1000);
+        setRemaining(`${min}m ${sec}s`);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [showTime]);
+
+  return remaining !== "0" ? (
+    <p className="text-orange-600">⏳ Starting in: {remaining}</p>
+  ) : null;
+};
+
 const IDPass = () => {
   const [daily, setDaily] = useState(null);
   const [weekly, setWeekly] = useState(null);
@@ -42,7 +65,7 @@ const IDPass = () => {
       setHasWeeklySlot(snap.exists());
     });
 
-    setTimeout(() => setLoading(false), 1000); // Simulate loading delay
+    setTimeout(() => setLoading(false), 1000);
 
     return () => {
       unsubDaily();
@@ -58,29 +81,6 @@ const IDPass = () => {
     setTimeout(() => setCopied(""), 1500);
   };
 
-  const renderTimer = (showTime) => {
-    const [remaining, setRemaining] = useState("");
-
-    useEffect(() => {
-      const interval = setInterval(() => {
-        const diff = new Date(showTime.seconds * 1000) - new Date();
-        if (diff <= 0) {
-          setRemaining("0");
-          clearInterval(interval);
-        } else {
-          const min = Math.floor(diff / 60000);
-          const sec = Math.floor((diff % 60000) / 1000);
-          setRemaining(`${min}m ${sec}s`);
-        }
-      }, 1000);
-      return () => clearInterval(interval);
-    }, [showTime]);
-
-    return remaining !== "0" ? (
-      <p className="text-orange-600">⏳ Starting in: {remaining}</p>
-    ) : null;
-  };
-
   const renderSection = (title, data, slotAssigned) => {
     const canShow = data.status === "active" && slotAssigned;
     const isTimerMode = data.showTime && new Date(data.showTime.seconds * 1000) > new Date();
@@ -94,7 +94,7 @@ const IDPass = () => {
         ) : !canShow ? (
           <p className="text-yellow-600">⚠️ Not started yet.</p>
         ) : isTimerMode ? (
-          renderTimer(data.showTime)
+          <Timer showTime={data.showTime} />
         ) : (
           <div className="border border-gray-300">
             <div className="flex font-semibold bg-gray-100 p-2 border-b">
@@ -138,23 +138,8 @@ const IDPass = () => {
         </p>
       ) : (
         <div className="space-y-6">
-          {daily
-            ? renderSection("📅 Daily Scrim", daily, hasDailySlot)
-            : (
-              <div>
-                <h3 className="text-lg font-semibold text-blue-700 mb-2">📅 Daily Scrim</h3>
-                <p className="text-yellow-600">⚠️ Not started yet.</p>
-              </div>
-            )}
-
-          {weekly
-            ? renderSection("🛡️ Weekly War", weekly, hasWeeklySlot)
-            : (
-              <div>
-                <h3 className="text-lg font-semibold text-blue-700 mb-2">🛡️ Weekly War</h3>
-                <p className="text-yellow-600">⚠️ Not started yet.</p>
-              </div>
-            )}
+          {renderSection("📅 Daily Scrim", daily || {}, hasDailySlot)}
+          {renderSection("🛡️ Weekly War", weekly || {}, hasWeeklySlot)}
         </div>
       )}
     </div>
