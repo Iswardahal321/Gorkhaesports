@@ -109,7 +109,7 @@ const IDPass = () => {
         <h3 className="text-lg font-semibold text-blue-700 mb-2 text-center">{title}</h3>
         {countdown ? (
           <p className="text-orange-600 font-medium text-center">
-            ⏳ Match will unlock in: {countdown}
+            ⏳ IDP in: {countdown} minutes 
           </p>
         ) : (
           <>
