@@ -5,36 +5,28 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
 
 const IDPass = () => {
-  const [type, setType] = useState("Weekly War");
-  const [roomId, setRoomId] = useState("");
-  const [password, setPassword] = useState("");
-  const [showTime, setShowTime] = useState("");
-  const [status, setStatus] = useState("inactive");
+  const [daily, setDaily] = useState(null);
+  const [weekly, setWeekly] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const collectionName = type === "Daily Scrim" ? "daily_idp" : "weekly_idp";
-      const docRef = doc(db, collectionName, "idpass");
-      const docSnap = await getDoc(docRef);
+      const [dailySnap, weeklySnap] = await Promise.all([
+        getDoc(doc(db, "daily_idp", "idpass")),
+        getDoc(doc(db, "weekly_idp", "idpass")),
+      ]);
 
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setRoomId(data.roomId);
-        setPassword(data.password);
-        setShowTime(
-          data.showTime?.toDate()?.toLocaleString() || "Not set"
-        );
-        setStatus(data.status || "inactive");
-      } else {
-        setRoomId("");
-        setPassword("");
-        setShowTime("");
-        setStatus("inactive");
+      if (dailySnap.exists() && dailySnap.data().status === "active") {
+        setDaily(dailySnap.data());
       }
+
+      if (weeklySnap.exists() && weeklySnap.data().status === "active") {
+        setWeekly(weeklySnap.data());
+      }
+
     } catch (error) {
-      console.error("❌ Error fetching ID Pass:", error);
+      console.error("❌ Error fetching IDP data:", error);
     } finally {
       setLoading(false);
     }
@@ -42,54 +34,57 @@ const IDPass = () => {
 
   useEffect(() => {
     fetchData();
-  }, [type]);
+  }, []);
+
+  const handleCopy = (text) => {
+    navigator.clipboard.writeText(text);
+    alert("✅ Copied: " + text);
+  };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white shadow rounded">
-      <h2 className="text-xl font-bold mb-4 text-center">🎮 Room ID & Password</h2>
-
-      <div className="mb-4">
-        <label className="block mb-1 font-medium">Match Type</label>
-        <select
-          className="w-full border p-2 rounded"
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-        >
-          <option value="Daily Scrim">Daily Scrim</option>
-          <option value="Weekly War">Weekly War</option>
-        </select>
-      </div>
+    <div className="max-w-2xl mx-auto mt-10 p-6 bg-white shadow rounded">
+      <h2 className="text-xl font-bold mb-6 text-center">🎮 Room ID & Password</h2>
 
       {loading ? (
         <p className="text-center">Loading...</p>
-      ) : status === "active" ? (
-        <>
-          <div className="mb-3">
-            <label className="block font-medium">🆔 Room ID</label>
-            <input
-              type="text"
-              readOnly
-              value={roomId}
-              className="w-full border p-2 rounded bg-gray-100"
-            />
-          </div>
-          <div className="mb-3">
-            <label className="block font-medium">🔐 Password</label>
-            <input
-              type="text"
-              readOnly
-              value={password}
-              className="w-full border p-2 rounded bg-gray-100"
-            />
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            🕒 Match Time: <strong>{showTime}</strong>
-          </p>
-        </>
+      ) : !daily && !weekly ? (
+        <p className="text-center text-yellow-600">⚠️ No active Room ID found.</p>
       ) : (
-        <p className="text-center text-yellow-600 font-semibold">
-          ⚠️ ID & Password inactive or not available.
-        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border border-gray-300">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-3 border">Match Type</th>
+                <th className="p-3 border">Room ID</th>
+                <th className="p-3 border">Password</th>
+              </tr>
+            </thead>
+            <tbody>
+              {daily && (
+                <tr>
+                  <td className="p-3 border font-semibold">Daily Scrim</td>
+                  <td className="p-3 border text-blue-700 cursor-pointer" onClick={() => handleCopy(daily.roomId)}>
+                    {daily.roomId}
+                  </td>
+                  <td className="p-3 border text-blue-700 cursor-pointer" onClick={() => handleCopy(daily.password)}>
+                    {daily.password}
+                  </td>
+                </tr>
+              )}
+              {weekly && (
+                <tr>
+                  <td className="p-3 border font-semibold">Weekly War</td>
+                  <td className="p-3 border text-blue-700 cursor-pointer" onClick={() => handleCopy(weekly.roomId)}>
+                    {weekly.roomId}
+                  </td>
+                  <td className="p-3 border text-blue-700 cursor-pointer" onClick={() => handleCopy(weekly.password)}>
+                    {weekly.password}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
