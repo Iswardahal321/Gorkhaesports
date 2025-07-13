@@ -9,18 +9,19 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
 import { onAuthStateChanged } from "firebase/auth";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const IDPass = () => {
   const [userId, setUserId] = useState(null);
   const [daily, setDaily] = useState(null);
   const [weekly, setWeekly] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [copyMessage, setCopyMessage] = useState("");
   const [now, setNow] = useState(Date.now());
   const [hasDailySlot, setHasDailySlot] = useState(false);
   const [hasWeeklySlot, setHasWeeklySlot] = useState(false);
-  const [spoken, setSpoken] = useState({ daily: false, weekly: false });
-  const [popupShown, setPopupShown] = useState({ daily: false, weekly: false });
+  const [prevDailyStatus, setPrevDailyStatus] = useState(null);
+  const [prevWeeklyStatus, setPrevWeeklyStatus] = useState(null);
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -42,15 +43,23 @@ const IDPass = () => {
     const dailyQ = query(collection(db, "daily_slots"), where("userId", "==", uid));
     const weeklyQ = query(collection(db, "weekly_slots"), where("userId", "==", uid));
 
-    const [dailySnap, weeklySnap] = await Promise.all([getDocs(dailyQ), getDocs(weeklyQ)]);
+    const [dailySnap, weeklySnap] = await Promise.all([
+      getDocs(dailyQ),
+      getDocs(weeklyQ),
+    ]);
     setHasDailySlot(!dailySnap.empty);
     setHasWeeklySlot(!weeklySnap.empty);
   };
 
   const setupLiveListeners = () => {
     const unsubDaily = onSnapshot(doc(db, "daily_idp", "current"), (snap) => {
-      if (snap.exists() && snap.data().status === "active") {
-        setDaily(snap.data());
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.status === "active" && prevDailyStatus !== "active") {
+          toast.info("🎮 Daily Scrim is now ACTIVE!", { position: "top-center" });
+        }
+        setPrevDailyStatus(data.status);
+        setDaily(data.status === "active" ? data : null);
       } else {
         setDaily(null);
       }
@@ -58,8 +67,13 @@ const IDPass = () => {
     });
 
     const unsubWeekly = onSnapshot(doc(db, "weekly_idp", "current"), (snap) => {
-      if (snap.exists() && snap.data().status === "active") {
-        setWeekly(snap.data());
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.status === "active" && prevWeeklyStatus !== "active") {
+          toast.info("🛡️ Weekly War is now ACTIVE!", { position: "top-center" });
+        }
+        setPrevWeeklyStatus(data.status);
+        setWeekly(data.status === "active" ? data : null);
       } else {
         setWeekly(null);
       }
@@ -73,8 +87,13 @@ const IDPass = () => {
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
-    setCopyMessage(`✅ Copied: ${text}`);
-    setTimeout(() => setCopyMessage(""), 3000);
+    toast.success(`✅ Copied: ${text}`, {
+      position: "top-center",
+      autoClose: 3000,
+      hideProgressBar: false,
+      pauseOnHover: true,
+      draggable: true,
+    });
   };
 
   const formatCountdown = (time) => {
@@ -89,48 +108,35 @@ const IDPass = () => {
     return !showTime || showTime.toDate().getTime() <= now;
   };
 
-  const playVoice = (label) => {
-    if (spoken[label]) return;
-    const msg = new SpeechSynthesisUtterance("Here is your room details. Please join fast.");
-    window.speechSynthesis.speak(msg);
-    new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg").play();
-    setSpoken((prev) => ({ ...prev, [label]: true }));
-  };
-
-  const showPopupOnce = (label) => {
-    if (!popupShown[label]) {
-      alert("ℹ️ Tip: Tap on Room ID or Password to copy it!");
-      setPopupShown((prev) => ({ ...prev, [label]: true }));
-    }
-  };
-
-  const renderSection = (title, data, hasSlot, label) => {
+  const renderSection = (title, data, hasSlot) => {
     const showTime = data?.showTime;
-    const unlockTime = showTime?.toDate().getTime() || 0;
-    const isUnlocked = shouldShowIDP(showTime);
-    const countdown = !isUnlocked ? formatCountdown(unlockTime) : null;
+    const countdown =
+      showTime && !shouldShowIDP(showTime)
+        ? formatCountdown(showTime.toDate().getTime())
+        : null;
 
-    if (isUnlocked && !spoken[label]) {
-      playVoice(label);
-      showPopupOnce(label);
+    if (!hasSlot) {
+      return (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-blue-700 mb-2 text-center">{title}</h3>
+          <p className="text-red-600 font-medium text-center">🚫 Slot not assigned yet.</p>
+        </div>
+      );
     }
 
     return (
-      <div className="mb-6 text-center">
-        <h3 className="text-lg font-semibold text-blue-700 mb-2">{title}</h3>
-
-        {!hasSlot ? (
-          <p className="text-red-600 font-medium">🚫 Slot not assigned yet.</p>
-        ) : countdown ? (
-          <p className="text-orange-600 font-medium mb-2 animate-pulse">
-            ⏳ Unlocking in: <span className="font-mono">{countdown}</span>
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-blue-700 mb-2 text-center">{title}</h3>
+        {countdown ? (
+          <p className="text-orange-600 font-medium mb-2 text-center">
+            ⏳ Unlocking in: {countdown}
           </p>
         ) : (
           <table className="w-full border-collapse border border-gray-300 text-center">
             <thead className="bg-gray-100">
               <tr>
-                <th className="p-2 border text-center">Room ID</th>
-                <th className="p-2 border text-center">Password</th>
+                <th className="p-2 border">Room ID</th>
+                <th className="p-2 border">Password</th>
               </tr>
             </thead>
             <tbody>
@@ -155,28 +161,27 @@ const IDPass = () => {
     );
   };
 
+  const bothInactive = !daily && !weekly;
+
   return (
     <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded text-center">
       <h2 className="text-2xl font-bold mb-4">🎮 Room ID & Password</h2>
 
-      {copyMessage && (
-        <p className="text-green-600 font-medium mb-4">{copyMessage}</p>
-      )}
-
       {loading ? (
         <p className="text-blue-600 font-medium animate-pulse">
-          🔄 Fetching IDP...
+          🔍 Fetching IDP...
         </p>
-      ) : !daily && !weekly ? (
-        <p className="text-yellow-600 font-medium">
-          ⚠️ Game not started yet.
-        </p>
+      ) : bothInactive ? (
+        <p className="text-yellow-600 font-medium mt-4">⚠️ Game not started yet.</p>
       ) : (
         <div className="space-y-8">
-          {daily && renderSection("📅 Daily Scrim", daily, hasDailySlot, "daily")}
-          {weekly && renderSection("🛡️ Weekly War", weekly, hasWeeklySlot, "weekly")}
+          {renderSection("📅 Daily Scrim", daily, hasDailySlot)}
+          {renderSection("🛡️ Weekly War", weekly, hasWeeklySlot)}
         </div>
       )}
+
+      {/* ✅ Toast container */}
+      <ToastContainer />
     </div>
   );
 };
