@@ -1,12 +1,11 @@
 // src/components/AdminBottomNav.jsx
-
 import React from "react";
 import { BottomNavigation, BottomNavigationAction, Paper } from "@mui/material";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import GroupIcon from "@mui/icons-material/Group";
 import GamesIcon from "@mui/icons-material/SportsEsports";
 import SlotIcon from "@mui/icons-material/FormatListNumbered";
-import VpnKeyIcon from "@mui/icons-material/VpnKey"; // ✅ ID Pass Icon
+import KeyIcon from "@mui/icons-material/VpnKey"; // ✅ New Icon
 import { useLocation, useNavigate } from "react-router-dom";
 
 function AdminBottomNav() {
@@ -18,13 +17,16 @@ function AdminBottomNav() {
     "/admin/users",
     "/admin/add-game",
     "/admin/add-slot",
-    "/admin/add-id-pass", // ✅ New ID Pass route
+    "/admin/add-id-pass", // ✅ Correct ID/Password Page
   ];
 
   const currentTab = routes.indexOf(location.pathname);
 
   const handleChange = (event, newValue) => {
-    navigate(routes[newValue]);
+    // ✅ Prevent navigate("/") fallback
+    if (routes[newValue]) {
+      navigate(routes[newValue]);
+    }
   };
 
   return (
@@ -47,8 +49,8 @@ function AdminBottomNav() {
         <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} />
         <BottomNavigationAction label="Users" icon={<GroupIcon />} />
         <BottomNavigationAction label="Add Game" icon={<GamesIcon />} />
-        <BottomNavigationAction label="Slotlist" icon={<SlotIcon />} />
-        <BottomNavigationAction label="ID Pass" icon={<VpnKeyIcon />} /> {/* ✅ */}
+        <BottomNavigationAction label="Slots" icon={<SlotIcon />} />
+        <BottomNavigationAction label="ID Pass" icon={<KeyIcon />} />
       </BottomNavigation>
     </Paper>
   );
