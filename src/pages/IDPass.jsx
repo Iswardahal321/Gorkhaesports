@@ -5,15 +5,18 @@ import { db } from "../firebase/config";
 const IDPass = () => {
   const [daily, setDaily] = useState(null);
   const [weekly, setWeekly] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [copyMessage, setCopyMessage] = useState("");
 
   useEffect(() => {
+    setLoading(true);
     const unsubDaily = onSnapshot(doc(db, "daily_idp", "current"), (snap) => {
       if (snap.exists() && snap.data().status === "active") {
         setDaily(snap.data());
       } else {
         setDaily(null);
       }
+      setLoading(false);
     });
 
     const unsubWeekly = onSnapshot(doc(db, "weekly_idp", "current"), (snap) => {
@@ -22,6 +25,7 @@ const IDPass = () => {
       } else {
         setWeekly(null);
       }
+      setLoading(false);
     });
 
     return () => {
@@ -44,7 +48,9 @@ const IDPass = () => {
         <p className="text-green-600 font-medium mb-4">{copyMessage}</p>
       )}
 
-      {!daily && !weekly ? (
+      {loading ? (
+        <p className="text-blue-600 font-medium animate-pulse">🔄 Fetching IDP...</p>
+      ) : !daily && !weekly ? (
         <p className="text-yellow-600">⚠️ No active Room ID found.</p>
       ) : (
         <div className="space-y-8">
