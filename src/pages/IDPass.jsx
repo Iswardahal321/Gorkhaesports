@@ -1,3 +1,5 @@
+// 📁 src/pages/IDPass.jsx
+
 import React, { useEffect, useState, useRef } from "react";
 import {
   doc,
@@ -15,11 +17,11 @@ const IDPass = () => {
   const [daily, setDaily] = useState(null);
   const [weekly, setWeekly] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [copyMessage, setCopyMessage] = useState("");
   const [now, setNow] = useState(Date.now());
   const [hasDailySlot, setHasDailySlot] = useState(false);
   const [hasWeeklySlot, setHasWeeklySlot] = useState(false);
-  const [copyMessage, setCopyMessage] = useState("");
-  const popupShown = useRef(false);
+  const voicePlayedRef = useRef({ daily: false, weekly: false });
 
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
@@ -69,76 +71,72 @@ const IDPass = () => {
     };
   };
 
-  const handleCopy = (text, label) => {
+  const handleCopy = (label, text) => {
     navigator.clipboard.writeText(text);
-    setCopyMessage(`${label} Copied!`);
-    setTimeout(() => setCopyMessage(""), 3000);
-  };
-
-  const formatCountdown = (time) => {
-    const diff = Math.floor((time - now) / 1000);
-    if (diff <= 0) return null;
-    const mins = Math.floor(diff / 60);
-    const secs = diff % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    setCopyMessage(`✅ ${label} copied!`);
+    setTimeout(() => setCopyMessage(""), 2000);
   };
 
   const shouldShowIDP = (showTime) => {
     return !showTime || showTime.toDate().getTime() <= now;
   };
 
-  const renderSection = (title, data, hasSlot) => {
+  const playVoice = () => {
+    const audio = new Audio("/voice/idp_ready.mp3");
+    audio.play().catch((err) => console.error("🔇 Voice error:", err));
+  };
+
+  const renderSection = (title, data, hasSlot, type) => {
     const showTime = data?.showTime;
-    const countdown = showTime && !shouldShowIDP(showTime)
-      ? formatCountdown(showTime.toDate().getTime())
-      : null;
+    const isReady = shouldShowIDP(showTime);
+
+    if (isReady && !voicePlayedRef.current[type]) {
+      playVoice();
+      voicePlayedRef.current[type] = true;
+    }
 
     if (!hasSlot) {
       return (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-blue-700 text-center mb-2">{title}</h3>
+          <h3 className="text-lg font-semibold text-blue-700 mb-2 text-center">{title}</h3>
           <p className="text-red-600 font-medium text-center">🚫 Slot not assigned yet.</p>
         </div>
       );
     }
 
-    if (countdown && !popupShown.current) {
-      alert("📋 Tap on ID or Password to copy!");
-      popupShown.current = true;
-    }
-
     return (
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-blue-700 text-center mb-2">{title}</h3>
-        {countdown ? (
-          <p className="text-orange-600 font-medium text-center mb-2">
-            ⏳ Unlocking in: {countdown}
-          </p>
+        <h3 className="text-lg font-semibold text-blue-700 mb-2 text-center">{title}</h3>
+        {isReady ? (
+          <>
+            <p className="text-green-600 font-medium text-center mb-2">📋 Tap to copy your IDP details</p>
+            <table className="w-full border-collapse border border-gray-300 text-center">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="p-2 border text-center">Room ID</th>
+                  <th className="p-2 border text-center">Password</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="hover:bg-gray-50">
+                  <td
+                    className="p-2 border text-blue-700 cursor-pointer"
+                    onClick={() => handleCopy("Room ID", data.roomId)}
+                  >
+                    {data.roomId}
+                  </td>
+                  <td
+                    className="p-2 border text-blue-700 cursor-pointer"
+                    onClick={() => handleCopy("Password", data.password)}
+                  >
+                    {data.password}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </>
         ) : (
-          <table className="w-full border-collapse border border-gray-300 text-center">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-2 border text-center">Room ID</th>
-                <th className="p-2 border text-center">Password</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="hover:bg-gray-50">
-                <td
-                  className="p-2 border text-blue-700 cursor-pointer"
-                  onClick={() => handleCopy(data.roomId, "Room ID")}
-                >
-                  {data.roomId}
-                </td>
-                <td
-                  className="p-2 border text-blue-700 cursor-pointer"
-                  onClick={() => handleCopy(data.password, "Password")}
-                >
-                  {data.password}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <p className="text-orange-600 font-medium text-center">⏳ Waiting for match time...</p>
         )}
       </div>
     );
@@ -146,24 +144,21 @@ const IDPass = () => {
 
   return (
     <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded text-center">
-      <h2 className="text-2xl font-bold mb-4 text-center">🎮 Room ID & Password</h2>
+      <h2 className="text-2xl font-bold mb-4">🎮 Room ID & Password</h2>
 
       {copyMessage && (
-        <p className="text-green-600 font-medium text-center mb-4">{copyMessage}</p>
+        <p className="text-green-600 font-medium mb-4">{copyMessage}</p>
       )}
 
       {loading ? (
-        <p className="text-blue-600 font-medium animate-pulse text-center">
-          🔄 Fetching IDP...
-        </p>
+        <p className="text-blue-600 font-medium animate-pulse">🔍 Fetching IDP...</p>
       ) : (
         <div className="space-y-8">
+          {daily && renderSection("🗓️ Daily Scrim", daily, hasDailySlot, "daily")}
+          {weekly && renderSection("🛡️ Weekly War", weekly, hasWeeklySlot, "weekly")}
           {!daily && !weekly && (
-            <p className="text-yellow-600 font-medium">⚠️ Game not started yet.</p>
+            <p className="text-yellow-600 font-medium">⚠️ No active match found.</p>
           )}
-
-          {daily && renderSection("📅 Daily Scrim", daily, hasDailySlot)}
-          {weekly && renderSection("🛡️ Weekly War", weekly, hasWeeklySlot)}
         </div>
       )}
     </div>
