@@ -1,7 +1,14 @@
-// 📁 src/pages/AdminAddIDPass.jsx
-
-import React, { useState } from "react";
-import { addDoc, collection, Timestamp } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
+import {
+  addDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  Timestamp,
+  updateDoc,
+  doc,
+} from "firebase/firestore";
 import { db } from "../firebase/config";
 
 const AdminAddIDPass = () => {
@@ -9,9 +16,43 @@ const AdminAddIDPass = () => {
   const [password, setPassword] = useState("");
   const [type, setType] = useState("Weekly War");
   const [showTime, setShowTime] = useState("");
+  const [activeDocId, setActiveDocId] = useState(null);
+  const [isActive, setIsActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
 
+  // 🔁 Fetch latest active data on type change
+  useEffect(() => {
+    const fetchData = async () => {
+      const q = query(
+        collection(db, "id_pass"),
+        where("type", "==", type),
+        where("active", "==", true)
+      );
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const docData = snapshot.docs[0];
+        const data = docData.data();
+        setRoomId(data.roomId);
+        setPassword(data.password);
+        setShowTime(
+          data.showTime.toDate().toISOString().slice(0, 16) // format for datetime-local
+        );
+        setActiveDocId(docData.id);
+        setIsActive(true);
+      } else {
+        setRoomId("");
+        setPassword("");
+        setShowTime("");
+        setActiveDocId(null);
+        setIsActive(false);
+      }
+    };
+
+    fetchData();
+  }, [type]);
+
+  // ✅ Submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!roomId || !password || !showTime) {
@@ -21,18 +62,32 @@ const AdminAddIDPass = () => {
 
     try {
       setLoading(true);
-      await addDoc(collection(db, "id_pass"), {
+
+      // 🔁 Deactivate old active of same type
+      const q = query(
+        collection(db, "id_pass"),
+        where("type", "==", type),
+        where("active", "==", true)
+      );
+      const snapshot = await getDocs(q);
+      snapshot.forEach(async (d) => {
+        await updateDoc(doc(db, "id_pass", d.id), { active: false });
+      });
+
+      // ➕ Add new doc
+      const docRef = await addDoc(collection(db, "id_pass"), {
         roomId,
         password,
         type,
         showTime: Timestamp.fromDate(new Date(showTime)),
+        active: true,
         createdAt: Timestamp.now(),
       });
-      setRoomId("");
-      setPassword("");
-      setShowTime("");
-      setSuccess("✅ ID & Password added!");
+
+      setSuccess("✅ ID & Password added & set active!");
       setTimeout(() => setSuccess(""), 3000);
+      setActiveDocId(docRef.id);
+      setIsActive(true);
     } catch (err) {
       console.error(err);
       alert("❌ Failed to add.");
@@ -41,9 +96,42 @@ const AdminAddIDPass = () => {
     }
   };
 
+  // 🔄 Toggle activation
+  const toggleActive = async () => {
+    if (!activeDocId) return;
+    try {
+      await updateDoc(doc(db, "id_pass", activeDocId), {
+        active: !isActive,
+      });
+      setIsActive(!isActive);
+      setSuccess(`✅ ID ${!isActive ? "activated" : "deactivated"}!`);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to update status.");
+    }
+  };
+
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded shadow">
       <h2 className="text-xl font-bold mb-4">➕ Add Room ID & Password</h2>
+
+      {/* 🟢 Toggle */}
+      {activeDocId && (
+        <div className="flex items-center justify-between mb-4">
+          <span className="font-medium">Status: {isActive ? "✅ Active" : "⛔ Inactive"}</span>
+          <button
+            onClick={toggleActive}
+            className={`px-3 py-1 rounded ${
+              isActive ? "bg-red-600" : "bg-green-600"
+            } text-white`}
+          >
+            {isActive ? "Deactivate" : "Activate"}
+          </button>
+        </div>
+      )}
+
+      {/* 📝 Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block mb-1">Room ID</label>
