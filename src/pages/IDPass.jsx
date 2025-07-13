@@ -1,37 +1,33 @@
 import React, { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase/config";
 
 const IDPass = () => {
   const [daily, setDaily] = useState(null);
   const [weekly, setWeekly] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [copyMessage, setCopyMessage] = useState("");
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [dailySnap, weeklySnap] = await Promise.all([
-        getDoc(doc(db, "daily_idp", "current")),
-        getDoc(doc(db, "weekly_idp", "current")),
-      ]);
-
-      if (dailySnap.exists() && dailySnap.data().status === "active") {
-        setDaily(dailySnap.data());
-      }
-
-      if (weeklySnap.exists() && weeklySnap.data().status === "active") {
-        setWeekly(weeklySnap.data());
-      }
-    } catch (error) {
-      console.error("❌ Error fetching IDP data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
+    const unsubDaily = onSnapshot(doc(db, "daily_idp", "current"), (snap) => {
+      if (snap.exists() && snap.data().status === "active") {
+        setDaily(snap.data());
+      } else {
+        setDaily(null);
+      }
+    });
+
+    const unsubWeekly = onSnapshot(doc(db, "weekly_idp", "current"), (snap) => {
+      if (snap.exists() && snap.data().status === "active") {
+        setWeekly(snap.data());
+      } else {
+        setWeekly(null);
+      }
+    });
+
+    return () => {
+      unsubDaily();
+      unsubWeekly();
+    };
   }, []);
 
   const handleCopy = (text) => {
@@ -48,13 +44,10 @@ const IDPass = () => {
         <p className="text-green-600 font-medium mb-4">{copyMessage}</p>
       )}
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : !daily && !weekly ? (
+      {!daily && !weekly ? (
         <p className="text-yellow-600">⚠️ No active Room ID found.</p>
       ) : (
         <div className="space-y-8">
-          {/* ✅ Daily Scrim */}
           {daily && (
             <>
               <h3 className="text-lg font-semibold text-blue-700">📅 Daily Scrim</h3>
@@ -85,7 +78,6 @@ const IDPass = () => {
             </>
           )}
 
-          {/* ✅ Weekly War */}
           {weekly && (
             <>
               <h3 className="text-lg font-semibold text-purple-700">🛡️ Weekly War</h3>
