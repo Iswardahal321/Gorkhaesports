@@ -1,31 +1,35 @@
-// 📁 src/components/AdminLayout.jsx
-
-import React from "react";
+import React, { useState } from "react";
 import AdminBottomNav from "./AdminBottomNav";
 import AdminProfileMenu from "./AdminProfileMenu";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebase/config";
-import AdminSidebar from "./AdminSidebar";
+import AdminSidebar from "./AdminSidebar"; // ✅ Sidebar Component
+import { FiMenu } from "react-icons/fi"; // ✅ Menu icon
 
 function AdminLayout({ children }) {
   const [user] = useAuthState(auth);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* ✅ Left Sidebar */}
-      <AdminSidebar />
-
-      {/* ✅ Main content with top profile and bottom nav */}
-      <div className="flex-1 relative pb-16">
-        {/* ✅ Top-right profile menu */}
+    <div className="min-h-screen relative pb-16 bg-gray-50">
+      {/* ✅ Top Bar with Menu Icon */}
+      <div className="flex items-center justify-between p-4 bg-white shadow-md sticky top-0 z-30">
+        <button onClick={toggleSidebar} className="text-2xl">
+          <FiMenu />
+        </button>
         <AdminProfileMenu user={user} />
-
-        {/* ✅ Main Page Content */}
-        <div className="pt-4 px-4">{children}</div>
-
-        {/* ✅ Bottom Navigation (optional) */}
-        <AdminBottomNav />
       </div>
+
+      {/* ✅ Sidebar */}
+      <AdminSidebar open={sidebarOpen} onClose={toggleSidebar} />
+
+      {/* ✅ Main Content */}
+      <div className="pt-2 px-4">{children}</div>
+
+      {/* ✅ Bottom Navigation */}
+      <AdminBottomNav />
     </div>
   );
 }
