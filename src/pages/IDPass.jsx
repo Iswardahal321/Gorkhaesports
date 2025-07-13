@@ -1,48 +1,75 @@
 import React, { useEffect, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase/config";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase/config";
 
 const IDPass = () => {
+  const [userId, setUserId] = useState(null);
   const [daily, setDaily] = useState(null);
   const [weekly, setWeekly] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copyMessage, setCopyMessage] = useState("");
   const [now, setNow] = useState(Date.now());
+  const [hasDailySlot, setHasDailySlot] = useState(false);
+  const [hasWeeklySlot, setHasWeeklySlot] = useState(false);
 
-  // 🕒 Update current time every second
+  // 🕒 Update clock every second
   useEffect(() => {
-    const interval = setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-    return () => clearInterval(interval);
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  // 🔄 Live Fetch via onSnapshot
+  // ✅ Fetch Authenticated User
   useEffect(() => {
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        setUserId(null);
+      }
+    });
+  }, []);
+
+  // ✅ Check if slots assigned
+  const checkSlots = async (uid) => {
+    const dailyQ = query(collection(db, "daily_slots"), where("userId", "==", uid));
+    const weeklyQ = query(collection(db, "weekly_slots"), where("userId", "==", uid));
+
+    const [dailySnap, weeklySnap] = await Promise.all([getDocs(dailyQ), getDocs(weeklyQ)]);
+
+    setHasDailySlot(!dailySnap.empty);
+    setHasWeeklySlot(!weeklySnap.empty);
+  };
+
+  // ✅ Fetch IDPs
+  const fetchIDPs = async () => {
+    if (!userId) return;
     setLoading(true);
-    const unsubDaily = onSnapshot(doc(db, "daily_idp", "current"), (snap) => {
-      if (snap.exists() && snap.data().status === "active") {
-        setDaily(snap.data());
-      } else {
-        setDaily(null);
-      }
-      setLoading(false);
-    });
 
-    const unsubWeekly = onSnapshot(doc(db, "weekly_idp", "current"), (snap) => {
-      if (snap.exists() && snap.data().status === "active") {
-        setWeekly(snap.data());
-      } else {
-        setWeekly(null);
-      }
-      setLoading(false);
-    });
+    await checkSlots(userId);
 
-    return () => {
-      unsubDaily();
-      unsubWeekly();
-    };
-  }, []);
+    const [dailySnap, weeklySnap] = await Promise.all([
+      getDoc(doc(db, "daily_idp", "current")),
+      getDoc(doc(db, "weekly_idp", "current")),
+    ]);
+
+    if (dailySnap.exists() && dailySnap.data().status === "active") {
+      setDaily(dailySnap.data());
+    }
+
+    if (weeklySnap.exists() && weeklySnap.data().status === "active") {
+      setWeekly(weeklySnap.data());
+    }
+
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (userId) {
+      fetchIDPs();
+    }
+  }, [userId]);
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
@@ -50,21 +77,26 @@ const IDPass = () => {
     setTimeout(() => setCopyMessage(""), 3000);
   };
 
-  // ⏱️ Format countdown
   const formatCountdown = (time) => {
     const diff = Math.floor((time - now) / 1000);
     if (diff <= 0) return null;
     const mins = Math.floor(diff / 60);
     const secs = diff % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // ✅ Render logic
-  const renderSection = (title, data) => {
+  const renderSection = (title, data, hasSlot) => {
     const showTime = data?.showTime?.toDate?.().getTime?.();
     const countdown = showTime ? formatCountdown(showTime) : null;
+
+    if (!hasSlot) {
+      return (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-blue-700 mb-2">{title}</h3>
+          <p className="text-red-600 font-medium">🚫 Slot not assigned yet.</p>
+        </div>
+      );
+    }
 
     return (
       <div>
@@ -115,12 +147,10 @@ const IDPass = () => {
         <p className="text-blue-600 font-medium animate-pulse">
           🔄 Fetching IDP...
         </p>
-      ) : !daily && !weekly ? (
-        <p className="text-yellow-600">⚠️ No active Room ID found.</p>
       ) : (
         <div className="space-y-8">
-          {daily && renderSection("📅 Daily Scrim", daily)}
-          {weekly && renderSection("🛡️ Weekly War", weekly)}
+          {daily && renderSection("📅 Daily Scrim", daily, hasDailySlot)}
+          {weekly && renderSection("🛡️ Weekly War", weekly, hasWeeklySlot)}
         </div>
       )}
     </div>
