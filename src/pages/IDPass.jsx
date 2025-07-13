@@ -41,67 +41,79 @@ const IDPass = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto mt-10 p-6 bg-white shadow rounded">
-      <h2 className="text-xl font-bold mb-4 text-center">🎮 Room ID & Password</h2>
+    <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded text-center">
+      <h2 className="text-2xl font-bold mb-4">🎮 Room ID & Password</h2>
 
       {copyMessage && (
-        <p className="text-green-600 font-medium text-center mb-4">{copyMessage}</p>
+        <p className="text-green-600 font-medium mb-4">{copyMessage}</p>
       )}
 
       {loading ? (
-        <p className="text-center">Loading...</p>
+        <p>Loading...</p>
       ) : !daily && !weekly ? (
-        <p className="text-center text-yellow-600">⚠️ No active Room ID found.</p>
+        <p className="text-yellow-600">⚠️ No active Room ID found.</p>
       ) : (
         <div className="space-y-8">
-          {/* ✅ Daily Scrim Section */}
+          {/* ✅ Daily Scrim */}
           {daily && (
-            <div className="bg-gray-50 p-4 rounded border">
-              <h3 className="text-lg font-semibold mb-3 text-blue-700">📅 Daily Scrim</h3>
-              <div className="flex justify-between mb-2">
-                <span className="font-medium">Room ID:</span>
-                <span
-                  className="text-blue-700 cursor-pointer"
-                  onClick={() => handleCopy(daily.roomId)}
-                >
-                  {daily.roomId}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Password:</span>
-                <span
-                  className="text-blue-700 cursor-pointer"
-                  onClick={() => handleCopy(daily.password)}
-                >
-                  {daily.password}
-                </span>
-              </div>
-            </div>
+            <>
+              <h3 className="text-lg font-semibold text-blue-700">📅 Daily Scrim</h3>
+              <table className="w-full border-collapse border border-gray-300 mx-auto">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-2 border">Room ID</th>
+                    <th className="p-2 border">Password</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="hover:bg-gray-50">
+                    <td
+                      className="p-2 border text-blue-700 cursor-pointer"
+                      onClick={() => handleCopy(daily.roomId)}
+                    >
+                      {daily.roomId}
+                    </td>
+                    <td
+                      className="p-2 border text-blue-700 cursor-pointer"
+                      onClick={() => handleCopy(daily.password)}
+                    >
+                      {daily.password}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </>
           )}
 
-          {/* ✅ Weekly War Section */}
+          {/* ✅ Weekly War */}
           {weekly && (
-            <div className="bg-gray-50 p-4 rounded border">
-              <h3 className="text-lg font-semibold mb-3 text-purple-700">🛡️ Weekly War</h3>
-              <div className="flex justify-between mb-2">
-                <span className="font-medium">Room ID:</span>
-                <span
-                  className="text-blue-700 cursor-pointer"
-                  onClick={() => handleCopy(weekly.roomId)}
-                >
-                  {weekly.roomId}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Password:</span>
-                <span
-                  className="text-blue-700 cursor-pointer"
-                  onClick={() => handleCopy(weekly.password)}
-                >
-                  {weekly.password}
-                </span>
-              </div>
-            </div>
+            <>
+              <h3 className="text-lg font-semibold text-purple-700">🛡️ Weekly War</h3>
+              <table className="w-full border-collapse border border-gray-300 mx-auto">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-2 border">Room ID</th>
+                    <th className="p-2 border">Password</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="hover:bg-gray-50">
+                    <td
+                      className="p-2 border text-blue-700 cursor-pointer"
+                      onClick={() => handleCopy(weekly.roomId)}
+                    >
+                      {weekly.roomId}
+                    </td>
+                    <td
+                      className="p-2 border text-blue-700 cursor-pointer"
+                      onClick={() => handleCopy(weekly.password)}
+                    >
+                      {weekly.password}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </>
           )}
         </div>
       )}
