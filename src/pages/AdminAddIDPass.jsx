@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
 import {
-  addDoc,
-  collection,
+  doc,
+  setDoc,
+  getDoc,
   Timestamp,
-  query,
-  where,
-  orderBy,
-  limit,
   onSnapshot,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
@@ -19,32 +16,34 @@ const AdminAddIDPass = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
 
-  // ✅ Fetch latest roomId/password on type change
+  const collectionMap = {
+    "Weekly War": "weekly_idp",
+    "Daily Scrim": "daily_idp",
+  };
+
+  const docId = "current"; // Always update/fetch this doc
+
+  // ✅ Fetch existing values on type change
   useEffect(() => {
-    const q = query(
-      collection(db, "id_pass"),
-      where("type", "==", type),
-      orderBy("createdAt", "desc"),
-      limit(1)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!snapshot.empty) {
-        const data = snapshot.docs[0].data();
-        setRoomId(data.roomId || "");
-        setPassword(data.password || "");
-        setShowTime(
-          data.showTime
-            ? data.showTime.toDate().toISOString().slice(0, 16)
-            : ""
-        );
-      } else {
-        setRoomId("");
-        setPassword("");
-        setShowTime("");
+    const unsubscribe = onSnapshot(
+      doc(db, collectionMap[type], docId),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          setRoomId(data.roomId || "");
+          setPassword(data.password || "");
+          setShowTime(
+            data.showTime
+              ? data.showTime.toDate().toISOString().slice(0, 16)
+              : ""
+          );
+        } else {
+          setRoomId("");
+          setPassword("");
+          setShowTime("");
+        }
       }
-    });
-
+    );
     return () => unsubscribe();
   }, [type]);
 
@@ -57,18 +56,21 @@ const AdminAddIDPass = () => {
 
     try {
       setLoading(true);
-      await addDoc(collection(db, "id_pass"), {
+
+      await setDoc(doc(db, collectionMap[type], docId), {
         roomId,
         password,
         type,
         showTime: Timestamp.fromDate(new Date(showTime)),
-        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        status: "inactive", // ✅ Default status
       });
-      setSuccess("✅ ID & Password added!");
+
+      setSuccess("✅ ID & Password saved!");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error(err);
-      alert("❌ Failed to add.");
+      alert("❌ Failed to save.");
     } finally {
       setLoading(false);
     }
@@ -76,10 +78,10 @@ const AdminAddIDPass = () => {
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded shadow">
-      <h2 className="text-xl font-bold mb-4">➕ Add Room ID & Password</h2>
+      <h2 className="text-xl font-bold mb-4">➕ Add/Update ID & Password</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* ✅ Match Type at the top */}
+        {/* ✅ Type First */}
         <div>
           <label className="block mb-1">Match Type</label>
           <select
@@ -130,7 +132,7 @@ const AdminAddIDPass = () => {
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           disabled={loading}
         >
-          {loading ? "Adding..." : "Add ID & Password"}
+          {loading ? "Saving..." : "Save"}
         </button>
 
         {success && <p className="text-green-600 mt-2">{success}</p>}
