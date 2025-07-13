@@ -6,12 +6,13 @@ const IDPass = () => {
   const [daily, setDaily] = useState(null);
   const [weekly, setWeekly] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [copyMessage, setCopyMessage] = useState(""); // ✅ NEW
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [dailySnap, weeklySnap] = await Promise.all([
-        getDoc(doc(db, "daily_idp", "current")),  // ✅ Fixed docId
+        getDoc(doc(db, "daily_idp", "current")),
         getDoc(doc(db, "weekly_idp", "current")),
       ]);
 
@@ -22,7 +23,6 @@ const IDPass = () => {
       if (weeklySnap.exists() && weeklySnap.data().status === "active") {
         setWeekly(weeklySnap.data());
       }
-
     } catch (error) {
       console.error("❌ Error fetching IDP data:", error);
     } finally {
@@ -36,12 +36,21 @@ const IDPass = () => {
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
-    alert("✅ Copied: " + text);
+    setCopyMessage(`✅ Copied: ${text}`);
+
+    setTimeout(() => {
+      setCopyMessage("");
+    }, 3000); // ✅ 3 seconds later remove message
   };
 
   return (
     <div className="max-w-2xl mx-auto mt-10 p-6 bg-white shadow rounded">
-      <h2 className="text-xl font-bold mb-6 text-center">🎮 Room ID & Password</h2>
+      <h2 className="text-xl font-bold mb-4 text-center">🎮 Room ID & Password</h2>
+
+      {/* ✅ Success Copy Message */}
+      {copyMessage && (
+        <p className="text-green-600 font-medium text-center mb-4">{copyMessage}</p>
+      )}
 
       {loading ? (
         <p className="text-center">Loading...</p>
