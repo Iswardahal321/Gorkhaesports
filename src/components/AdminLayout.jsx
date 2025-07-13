@@ -10,6 +10,7 @@ function AdminLayout({ children }) {
   const [user] = useAuthState(auth);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   return (
