@@ -1,5 +1,3 @@
-// 📁 src/pages/IDPass.jsx
-
 import React, { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/config";
@@ -13,8 +11,8 @@ const IDPass = () => {
     setLoading(true);
     try {
       const [dailySnap, weeklySnap] = await Promise.all([
-        getDoc(doc(db, "daily_idp", "idpass")),
-        getDoc(doc(db, "weekly_idp", "idpass")),
+        getDoc(doc(db, "daily_idp", "current")),  // ✅ Fixed docId
+        getDoc(doc(db, "weekly_idp", "current")),
       ]);
 
       if (dailySnap.exists() && dailySnap.data().status === "active") {
@@ -63,10 +61,16 @@ const IDPass = () => {
               {daily && (
                 <tr>
                   <td className="p-3 border font-semibold">Daily Scrim</td>
-                  <td className="p-3 border text-blue-700 cursor-pointer" onClick={() => handleCopy(daily.roomId)}>
+                  <td
+                    className="p-3 border text-blue-700 cursor-pointer"
+                    onClick={() => handleCopy(daily.roomId)}
+                  >
                     {daily.roomId}
                   </td>
-                  <td className="p-3 border text-blue-700 cursor-pointer" onClick={() => handleCopy(daily.password)}>
+                  <td
+                    className="p-3 border text-blue-700 cursor-pointer"
+                    onClick={() => handleCopy(daily.password)}
+                  >
                     {daily.password}
                   </td>
                 </tr>
@@ -74,10 +78,16 @@ const IDPass = () => {
               {weekly && (
                 <tr>
                   <td className="p-3 border font-semibold">Weekly War</td>
-                  <td className="p-3 border text-blue-700 cursor-pointer" onClick={() => handleCopy(weekly.roomId)}>
+                  <td
+                    className="p-3 border text-blue-700 cursor-pointer"
+                    onClick={() => handleCopy(weekly.roomId)}
+                  >
                     {weekly.roomId}
                   </td>
-                  <td className="p-3 border text-blue-700 cursor-pointer" onClick={() => handleCopy(weekly.password)}>
+                  <td
+                    className="p-3 border text-blue-700 cursor-pointer"
+                    onClick={() => handleCopy(weekly.password)}
+                  >
                     {weekly.password}
                   </td>
                 </tr>
