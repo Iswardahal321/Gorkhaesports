@@ -1,24 +1,31 @@
-// src/components/AdminLayout.jsx
+// 📁 src/components/AdminLayout.jsx
+
 import React from "react";
 import AdminBottomNav from "./AdminBottomNav";
 import AdminProfileMenu from "./AdminProfileMenu";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebase/config";
+import AdminSidebar from "./AdminSidebar";
 
 function AdminLayout({ children }) {
   const [user] = useAuthState(auth);
 
-  
   return (
-    <div className="min-h-screen relative pb-16 bg-gray-50">
-      {/* ✅ Top-right admin profile circle */}
-      <AdminProfileMenu user={user} />
+    <div className="flex min-h-screen bg-gray-50">
+      {/* ✅ Left Sidebar */}
+      <AdminSidebar />
 
-      {/* Main content */}
-      <div className="pt-4 px-4">{children}</div>
+      {/* ✅ Main content with top profile and bottom nav */}
+      <div className="flex-1 relative pb-16">
+        {/* ✅ Top-right profile menu */}
+        <AdminProfileMenu user={user} />
 
-      {/* Bottom nav */}
-      <AdminBottomNav />
+        {/* ✅ Main Page Content */}
+        <div className="pt-4 px-4">{children}</div>
+
+        {/* ✅ Bottom Navigation (optional) */}
+        <AdminBottomNav />
+      </div>
     </div>
   );
 }
