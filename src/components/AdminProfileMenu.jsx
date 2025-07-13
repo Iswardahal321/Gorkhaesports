@@ -21,7 +21,7 @@ import {
   reauthenticateWithCredential,
 } from "firebase/auth";
 import { auth, db } from "../firebase/config";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 const AdminProfileMenu = ({ user }) => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -66,8 +66,8 @@ const AdminProfileMenu = ({ user }) => {
 
   const fetchStatus = async () => {
     try {
-      const dailyRef = doc(db, "daily_idp", "main");
-      const weeklyRef = doc(db, "weekly_idp", "main");
+      const dailyRef = doc(db, "daily_idp", "current");
+      const weeklyRef = doc(db, "weekly_idp", "current");
 
       const dailySnap = await getDoc(dailyRef);
       const weeklySnap = await getDoc(weeklyRef);
@@ -85,12 +85,21 @@ const AdminProfileMenu = ({ user }) => {
 
   const toggleStatus = async (type) => {
     try {
-      const ref = doc(db, type === "daily" ? "daily_idp" : "weekly_idp", "main");
+      const collection = type === "daily" ? "daily_idp" : "weekly_idp";
+      const ref = doc(db, collection, "current");
       const newStatus = type === "daily" ? !dailyStatus : !weeklyStatus;
 
-      await updateDoc(ref, {
-        status: newStatus ? "active" : "inactive",
-      });
+      const snap = await getDoc(ref);
+
+      if (snap.exists()) {
+        await updateDoc(ref, {
+          status: newStatus ? "active" : "inactive",
+        });
+      } else {
+        await setDoc(ref, {
+          status: newStatus ? "active" : "inactive",
+        });
+      }
 
       if (type === "daily") {
         setDailyStatus(newStatus);
@@ -98,7 +107,7 @@ const AdminProfileMenu = ({ user }) => {
         setWeeklyStatus(newStatus);
       }
     } catch (err) {
-      console.error("❌ Failed to update status:", err);
+      console.error("❌ Failed to toggle status:", err);
     }
   };
 
