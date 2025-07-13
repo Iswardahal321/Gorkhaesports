@@ -9,25 +9,25 @@ import {
 } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
 import { onAuthStateChanged } from "firebase/auth";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 const IDPass = () => {
   const [userId, setUserId] = useState(null);
   const [daily, setDaily] = useState(null);
   const [weekly, setWeekly] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [copyMessage, setCopyMessage] = useState("");
   const [now, setNow] = useState(Date.now());
   const [hasDailySlot, setHasDailySlot] = useState(false);
   const [hasWeeklySlot, setHasWeeklySlot] = useState(false);
-  const [prevDailyStatus, setPrevDailyStatus] = useState(null);
-  const [prevWeeklyStatus, setPrevWeeklyStatus] = useState(null);
+  const [spoken, setSpoken] = useState({ daily: false, weekly: false });
 
+  // âœ… Timer updater
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
 
+  // âœ… Auth and slot + listeners
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -43,23 +43,15 @@ const IDPass = () => {
     const dailyQ = query(collection(db, "daily_slots"), where("userId", "==", uid));
     const weeklyQ = query(collection(db, "weekly_slots"), where("userId", "==", uid));
 
-    const [dailySnap, weeklySnap] = await Promise.all([
-      getDocs(dailyQ),
-      getDocs(weeklyQ),
-    ]);
+    const [dailySnap, weeklySnap] = await Promise.all([getDocs(dailyQ), getDocs(weeklyQ)]);
     setHasDailySlot(!dailySnap.empty);
     setHasWeeklySlot(!weeklySnap.empty);
   };
 
   const setupLiveListeners = () => {
     const unsubDaily = onSnapshot(doc(db, "daily_idp", "current"), (snap) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        if (data.status === "active" && prevDailyStatus !== "active") {
-          toast.info("🎮 Daily Scrim is now ACTIVE!", { position: "top-center" });
-        }
-        setPrevDailyStatus(data.status);
-        setDaily(data.status === "active" ? data : null);
+      if (snap.exists() && snap.data().status === "active") {
+        setDaily(snap.data());
       } else {
         setDaily(null);
       }
@@ -67,13 +59,8 @@ const IDPass = () => {
     });
 
     const unsubWeekly = onSnapshot(doc(db, "weekly_idp", "current"), (snap) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        if (data.status === "active" && prevWeeklyStatus !== "active") {
-          toast.info("🛡️ Weekly War is now ACTIVE!", { position: "top-center" });
-        }
-        setPrevWeeklyStatus(data.status);
-        setWeekly(data.status === "active" ? data : null);
+      if (snap.exists() && snap.data().status === "active") {
+        setWeekly(snap.data());
       } else {
         setWeekly(null);
       }
@@ -87,13 +74,8 @@ const IDPass = () => {
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
-    toast.success(`✅ Copied: ${text}`, {
-      position: "top-center",
-      autoClose: 3000,
-      hideProgressBar: false,
-      pauseOnHover: true,
-      draggable: true,
-    });
+    setCopyMessage(`âœ… Copied: ${text}`);
+    setTimeout(() => setCopyMessage(""), 3000);
   };
 
   const formatCountdown = (time) => {
@@ -108,31 +90,38 @@ const IDPass = () => {
     return !showTime || showTime.toDate().getTime() <= now;
   };
 
-  const renderSection = (title, data, hasSlot) => {
-    const showTime = data?.showTime;
-    const countdown =
-      showTime && !shouldShowIDP(showTime)
-        ? formatCountdown(showTime.toDate().getTime())
-        : null;
+  // âœ… ðŸ”Š Sound alert & speech
+  const playVoice = (label) => {
+    if (spoken[label]) return;
+    const msg = new SpeechSynthesisUtterance("Here is your room details. Please join fast.");
+    window.speechSynthesis.speak(msg);
+    new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg").play();
+    setSpoken((prev) => ({ ...prev, [label]: true }));
+  };
 
-    if (!hasSlot) {
-      return (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-blue-700 mb-2 text-center">{title}</h3>
-          <p className="text-red-600 font-medium text-center">🚫 Slot not assigned yet.</p>
-        </div>
-      );
+  const renderSection = (title, data, hasSlot, label) => {
+    const showTime = data?.showTime;
+    const unlockTime = showTime?.toDate().getTime() || 0;
+    const isUnlocked = shouldShowIDP(showTime);
+    const countdown = !isUnlocked ? formatCountdown(unlockTime) : null;
+
+    // Trigger voice alert
+    if (isUnlocked && !spoken[label]) {
+      playVoice(label);
     }
 
     return (
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-blue-700 mb-2 text-center">{title}</h3>
-        {countdown ? (
-          <p className="text-orange-600 font-medium mb-2 text-center">
-            ⏳ Unlocking in: {countdown}
+      <div className="mb-6 text-left">
+        <h3 className="text-lg font-semibold text-blue-700 mb-2">{title}</h3>
+
+        {!hasSlot ? (
+          <p className="text-red-600 font-medium">ðŸš« Slot not assigned yet.</p>
+        ) : countdown ? (
+          <p className="text-orange-600 font-medium mb-2 animate-pulse">
+            â³ Unlocking in: <span className="font-mono">{countdown}</span>
           </p>
         ) : (
-          <table className="w-full border-collapse border border-gray-300 text-center">
+          <table className="w-full border-collapse border border-gray-300">
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-2 border">Room ID</th>
@@ -161,27 +150,28 @@ const IDPass = () => {
     );
   };
 
-  const bothInactive = !daily && !weekly;
-
   return (
     <div className="max-w-xl mx-auto mt-10 p-6 bg-white shadow rounded text-center">
-      <h2 className="text-2xl font-bold mb-4">🎮 Room ID & Password</h2>
+      <h2 className="text-2xl font-bold mb-4">ðŸŽ® Room ID & Password</h2>
+
+      {copyMessage && (
+        <p className="text-green-600 font-medium mb-4">{copyMessage}</p>
+      )}
 
       {loading ? (
         <p className="text-blue-600 font-medium animate-pulse">
-          🔍 Fetching IDP...
+          ðŸ”„ Fetching IDP...
         </p>
-      ) : bothInactive ? (
-        <p className="text-yellow-600 font-medium mt-4">⚠️ Game not started yet.</p>
+      ) : !daily && !weekly ? (
+        <p className="text-yellow-600 font-medium">
+          âš ï¸ Game not started yet.
+        </p>
       ) : (
         <div className="space-y-8">
-          {renderSection("📅 Daily Scrim", daily, hasDailySlot)}
-          {renderSection("🛡️ Weekly War", weekly, hasWeeklySlot)}
+          {daily && renderSection("ðŸ“… Daily Scrim", daily, hasDailySlot, "daily")}
+          {weekly && renderSection("ðŸ›¡ï¸ Weekly War", weekly, hasWeeklySlot, "weekly")}
         </div>
       )}
-
-      {/* ✅ Toast container */}
-      <ToastContainer />
     </div>
   );
 };
