@@ -18,14 +18,12 @@ const AdminAddIDPass = () => {
   const [showTime, setShowTime] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
-  const [active, setActive] = useState(false);
 
-  // ✅ Fetch existing active ID/Pass when type changes
+  // ✅ Fetch latest roomId/password on type change
   useEffect(() => {
     const q = query(
       collection(db, "id_pass"),
       where("type", "==", type),
-      where("active", "==", true),
       orderBy("createdAt", "desc"),
       limit(1)
     );
@@ -33,15 +31,17 @@ const AdminAddIDPass = () => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
         const data = snapshot.docs[0].data();
-        setRoomId(data.roomId);
-        setPassword(data.password);
-        setShowTime(data.showTime.toDate().toISOString().slice(0, 16)); // convert timestamp
-        setActive(true);
+        setRoomId(data.roomId || "");
+        setPassword(data.password || "");
+        setShowTime(
+          data.showTime
+            ? data.showTime.toDate().toISOString().slice(0, 16)
+            : ""
+        );
       } else {
         setRoomId("");
         setPassword("");
         setShowTime("");
-        setActive(false);
       }
     });
 
@@ -63,7 +63,6 @@ const AdminAddIDPass = () => {
         type,
         showTime: Timestamp.fromDate(new Date(showTime)),
         createdAt: Timestamp.now(),
-        active, // ✅ store toggle value
       });
       setSuccess("✅ ID & Password added!");
       setTimeout(() => setSuccess(""), 3000);
@@ -123,19 +122,6 @@ const AdminAddIDPass = () => {
             onChange={(e) => setShowTime(e.target.value)}
             required
           />
-        </div>
-
-        {/* ✅ Toggle Switch */}
-        <div className="flex items-center space-x-2">
-          <input
-            id="active-toggle"
-            type="checkbox"
-            checked={active}
-            onChange={(e) => setActive(e.target.checked)}
-          />
-          <label htmlFor="active-toggle" className="font-medium">
-            Active
-          </label>
         </div>
 
         <button
