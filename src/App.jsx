@@ -14,14 +14,17 @@ import Register from "./pages/Register.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import AddTeam from "./pages/AddTeam.jsx";
 import JoinTournament from "./pages/JoinTournament.jsx";
+import SlotList from "./pages/SlotList.jsx";
+import IDPass from "./pages/IDPass.jsx"; // ✅ User side
+
+// ✅ Admin Pages
 import AdminPanel from "./pages/AdminPanel.jsx";
 import AdminTeams from "./pages/AdminTeams.jsx";
-import SlotList from "./pages/SlotList.jsx";
 import AddSlot from "./pages/AddSlot.jsx";
 import AddGame from "./pages/AddGame.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
 import UploadResult from "./pages/UploadResult.jsx";
-import IDPass from "./pages/IDPass.jsx"; // ✅ New page
+import AdminAddIDPass from "./pages/AdminAddIDPass.jsx"; // ✅ NEW import
 
 // ✅ Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -159,6 +162,16 @@ function App() {
             <AdminRoute>
               <AdminLayout>
                 <UploadResult />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/add-id-pass"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <AdminAddIDPass />
               </AdminLayout>
             </AdminRoute>
           }
