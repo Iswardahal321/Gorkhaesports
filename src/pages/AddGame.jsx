@@ -21,6 +21,7 @@ function AddGame() {
   const collectionName =
     gameType === "Daily Scrim" ? "games_daily" : "games_weekly";
 
+  // Fetch existing data and pre-fill form
   useEffect(() => {
     const fetchGame = async () => {
       setError("");
@@ -59,17 +60,12 @@ function AddGame() {
     }
 
     try {
-      const gameRef = doc(
-        db,
-        collectionName,
-        gameType.toLowerCase().replace(" ", "_")
-      );
+      const gameRef = doc(db, collectionName, gameType.toLowerCase().replace(" ", "_"));
       await setDoc(gameRef, {
         gameType,
         fee,
         description,
         updatedAt: new Date(),
-        status: "active", // ✅ Auto-added
       });
 
       setSuccess("Game saved successfully.");
@@ -98,7 +94,7 @@ function AddGame() {
           </div>
 
           <div>
-            <label className="block mb-1 font-medium">Entry Fee (₹)</label>
+            <label className="block mb-1 font-medium">Entry Fee (â‚¹)</label>
             <input
               type="number"
               className="w-full p-2 border border-gray-300 rounded"
