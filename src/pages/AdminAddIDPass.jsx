@@ -79,6 +79,19 @@ const AdminAddIDPass = () => {
       <h2 className="text-xl font-bold mb-4">➕ Add Room ID & Password</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* ✅ Match Type at the top */}
+        <div>
+          <label className="block mb-1">Match Type</label>
+          <select
+            className="w-full border p-2 rounded"
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+          >
+            <option value="Daily Scrim">Daily Scrim</option>
+            <option value="Weekly War">Weekly War</option>
+          </select>
+        </div>
+
         <div>
           <label className="block mb-1">Room ID</label>
           <input
@@ -99,18 +112,6 @@ const AdminAddIDPass = () => {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-        </div>
-
-        <div>
-          <label className="block mb-1">Match Type</label>
-          <select
-            className="w-full border p-2 rounded"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          >
-            <option value="Daily Scrim">Daily Scrim</option>
-            <option value="Weekly War">Weekly War</option>
-          </select>
         </div>
 
         <div>
