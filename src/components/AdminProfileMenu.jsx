@@ -21,7 +21,7 @@ import {
   reauthenticateWithCredential,
 } from "firebase/auth";
 import { auth, db } from "../firebase/config";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, onSnapshot } from "firebase/firestore";
 
 const AdminProfileMenu = ({ user }) => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -64,48 +64,36 @@ const AdminProfileMenu = ({ user }) => {
     }
   };
 
-  const fetchStatus = async () => {
-    try {
-      const dailyRef = doc(db, "daily_idp", "current");
-      const weeklyRef = doc(db, "weekly_idp", "current");
-
-      const dailySnap = await getDoc(dailyRef);
-      const weeklySnap = await getDoc(weeklyRef);
-
-      if (dailySnap.exists()) {
-        setDailyStatus(dailySnap.data().status === "active");
+  // ✅ LIVE FETCH Toggle Status (onSnapshot)
+  const subscribeToStatus = () => {
+    const unsubDaily = onSnapshot(doc(db, "daily_idp", "current"), (snap) => {
+      if (snap.exists()) {
+        setDailyStatus(snap.data().status === "active");
       }
-      if (weeklySnap.exists()) {
-        setWeeklyStatus(weeklySnap.data().status === "active");
+    });
+
+    const unsubWeekly = onSnapshot(doc(db, "weekly_idp", "current"), (snap) => {
+      if (snap.exists()) {
+        setWeeklyStatus(snap.data().status === "active");
       }
-    } catch (err) {
-      console.error("❌ Failed to fetch status:", err);
-    }
+    });
+
+    return () => {
+      unsubDaily();
+      unsubWeekly();
+    };
   };
 
+  // ✅ Toggle Logic
   const toggleStatus = async (type) => {
     try {
       const collection = type === "daily" ? "daily_idp" : "weekly_idp";
       const ref = doc(db, collection, "current");
       const newStatus = type === "daily" ? !dailyStatus : !weeklyStatus;
 
-      const snap = await getDoc(ref);
-
-      if (snap.exists()) {
-        await updateDoc(ref, {
-          status: newStatus ? "active" : "inactive",
-        });
-      } else {
-        await setDoc(ref, {
-          status: newStatus ? "active" : "inactive",
-        });
-      }
-
-      if (type === "daily") {
-        setDailyStatus(newStatus);
-      } else {
-        setWeeklyStatus(newStatus);
-      }
+      await setDoc(ref, {
+        status: newStatus ? "active" : "inactive",
+      }, { merge: true });
     } catch (err) {
       console.error("❌ Failed to toggle status:", err);
     }
@@ -113,7 +101,8 @@ const AdminProfileMenu = ({ user }) => {
 
   useEffect(() => {
     if (user) {
-      fetchStatus();
+      const unsubscribe = subscribeToStatus();
+      return unsubscribe;
     }
   }, [user]);
 
