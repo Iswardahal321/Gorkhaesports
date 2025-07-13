@@ -19,14 +19,15 @@ const IDPass = () => {
   const [now, setNow] = useState(Date.now());
   const [hasDailySlot, setHasDailySlot] = useState(false);
   const [hasWeeklySlot, setHasWeeklySlot] = useState(false);
+  const [spoken, setSpoken] = useState({ daily: false, weekly: false });
 
-  // Live timer update
+  // ✅ Timer updater
   useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Auth + setup listeners
+  // ✅ Auth and slot + listeners
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -89,11 +90,25 @@ const IDPass = () => {
     return !showTime || showTime.toDate().getTime() <= now;
   };
 
-  const renderSection = (title, data, hasSlot) => {
+  // ✅ 🔊 Sound alert & speech
+  const playVoice = (label) => {
+    if (spoken[label]) return;
+    const msg = new SpeechSynthesisUtterance("Here is your room details. Please join fast.");
+    window.speechSynthesis.speak(msg);
+    new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg").play();
+    setSpoken((prev) => ({ ...prev, [label]: true }));
+  };
+
+  const renderSection = (title, data, hasSlot, label) => {
     const showTime = data?.showTime;
-    const countdown = showTime && !shouldShowIDP(showTime)
-      ? formatCountdown(showTime.toDate().getTime())
-      : null;
+    const unlockTime = showTime?.toDate().getTime() || 0;
+    const isUnlocked = shouldShowIDP(showTime);
+    const countdown = !isUnlocked ? formatCountdown(unlockTime) : null;
+
+    // Trigger voice alert
+    if (isUnlocked && !spoken[label]) {
+      playVoice(label);
+    }
 
     return (
       <div className="mb-6 text-left">
@@ -102,15 +117,15 @@ const IDPass = () => {
         {!hasSlot ? (
           <p className="text-red-600 font-medium">🚫 Slot not assigned yet.</p>
         ) : countdown ? (
-          <p className="text-orange-600 font-medium mb-2">
-            ⏳ Unlocking in: {countdown}
+          <p className="text-orange-600 font-medium mb-2 animate-pulse">
+            ⏳ Unlocking in: <span className="font-mono">{countdown}</span>
           </p>
         ) : (
           <table className="w-full border-collapse border border-gray-300">
             <thead className="bg-gray-100">
               <tr>
-                <th className="p-2 border"><center>Room ID</center></th>
-                <th className="p-2 border"><center>Password</center></th>
+                <th className="p-2 border">Room ID</th>
+                <th className="p-2 border">Password</th>
               </tr>
             </thead>
             <tbody>
@@ -153,8 +168,8 @@ const IDPass = () => {
         </p>
       ) : (
         <div className="space-y-8">
-          {renderSection("📅 Daily Scrim", daily, hasDailySlot)}
-          {renderSection("🛡️ Weekly War", weekly, hasWeeklySlot)}
+          {daily && renderSection("📅 Daily Scrim", daily, hasDailySlot, "daily")}
+          {weekly && renderSection("🛡️ Weekly War", weekly, hasWeeklySlot, "weekly")}
         </div>
       )}
     </div>
