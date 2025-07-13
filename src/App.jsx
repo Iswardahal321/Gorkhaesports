@@ -1,5 +1,3 @@
-// 📁 src/App.js
-
 import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
@@ -23,7 +21,7 @@ import AddSlot from "./pages/AddSlot.jsx";
 import AddGame from "./pages/AddGame.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
 import UploadResult from "./pages/UploadResult.jsx";
-import IDPass from "./pages/IDPass.jsx"; // ✅ Added new page
+import IDPass from "./pages/IDPass.jsx"; // ✅ New page
 
 // ✅ Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -94,7 +92,7 @@ function App() {
           }
         />
         <Route
-          path="/id-pass" // ✅ New Route Added
+          path="/id-pass"
           element={
             <PrivateRoute>
               <Layout>
