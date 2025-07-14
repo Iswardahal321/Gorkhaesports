@@ -1,35 +1,34 @@
-// 📁 api/razorpay.js
-
 const Razorpay = require("razorpay");
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
+    return res.status(405).json({ message: "Only POST requests allowed" });
   }
 
-  const { amount } = req.body;
-
   try {
-    const instance = new Razorpay({
+    const { amount } = req.body;
+
+    const razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 
-    const order = await instance.orders.create({
-      amount: amount * 100, // Convert to paisa
+    const options = {
+      amount: amount * 100, // amount in paise
       currency: "INR",
-      receipt: `receipt_${Date.now()}`,
-    });
+      receipt: `order_rcptid_${Math.floor(Math.random() * 10000)}`,
+    };
 
-    return res.status(200).json({
-      id: order.id,
-      currency: order.currency,
-      amount: order.amount,
+    const order = await razorpay.orders.create(options);
+
+    res.status(200).json({
       key: process.env.RAZORPAY_KEY_ID,
+      amount: order.amount,
+      currency: order.currency,
       order_id: order.id,
     });
-  } catch (error) {
-    console.error("❌ Razorpay Error:", error);
-    return res.status(500).json({ message: "Server Error", error: error.message });
+  } catch (err) {
+    console.error("Razorpay error:", err);
+    res.status(500).json({ message: "A server error occurred" });
   }
 };
