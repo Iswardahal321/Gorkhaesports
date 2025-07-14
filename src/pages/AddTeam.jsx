@@ -20,6 +20,7 @@ function AddTeam() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [existingTeamId, setExistingTeamId] = useState(null);
+  const [teamLocked, setTeamLocked] = useState(false); // 🔒 Team name edit lock
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,13 +28,26 @@ function AddTeam() {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
 
-      const q = query(
+      const userId = currentUser.uid;
+
+      // ✅ Check if user already joined a tournament
+      const joinedQuery = query(
+        collection(db, "tournament_joined"),
+        where("userId", "==", userId)
+      );
+      const joinedSnap = await getDocs(joinedQuery);
+      if (!joinedSnap.empty) {
+        setTeamLocked(true); // 🚫 Lock team name editing
+      }
+
+      // ✅ Fetch existing team
+      const teamQuery = query(
         collection(db, "teams"),
         where("leaderEmail", "==", currentUser.email)
       );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        const docData = snap.docs[0];
+      const teamSnap = await getDocs(teamQuery);
+      if (!teamSnap.empty) {
+        const docData = teamSnap.docs[0];
         setExistingTeamId(docData.id);
         const data = docData.data();
         setTeamName(data.teamName || "");
@@ -92,7 +106,7 @@ function AddTeam() {
         players,
         leaderEmail: currentUser.email,
         leaderName: currentUser.displayName || "Anonymous",
-        userId: currentUser.uid, // ✅ added uid
+        userId: currentUser.uid,
         createdAt: new Date(),
       };
 
@@ -125,6 +139,7 @@ function AddTeam() {
           value={teamName}
           onChange={(e) => setTeamName(e.target.value)}
           required
+          disabled={teamLocked} // 🔒 lock input
         />
 
         <div className="space-y-2">
