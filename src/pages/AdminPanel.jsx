@@ -1,139 +1,159 @@
-""import React, { useEffect, useState } from "react"; import { collection, getDocs, deleteDoc, doc } from "firebase/firestore"; import { db } from "../firebase/config"; import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { useNavigate } from "react-router-dom";
 
-function AdminPanel() { const navigate = useNavigate();
+function AdminPanel() {
+  const navigate = useNavigate();
 
-const [userCount, setUserCount] = useState(0); const [dailyJoined, setDailyJoined] = useState(0); const [weeklyJoined, setWeeklyJoined] = useState(0); const [totalFees, setTotalFees] = useState(0); const [selectedType, setSelectedType] = useState("Weekly War"); const [paymentData, setPaymentData] = useState([]);
+  const [teamUsers, setTeamUsers] = useState(new Set());
+  const [totalFees, setTotalFees] = useState(0);
+  const [dailyFees, setDailyFees] = useState(0);
+  const [weeklyFees, setWeeklyFees] = useState(0);
+  const [joinedPlayers, setJoinedPlayers] = useState(0);
+  const [paymentData, setPaymentData] = useState([]);
+  const [filter, setFilter] = useState("All");
 
-useEffect(() => { const fetchData = async () => { try { const usersSnap = await getDocs(collection(db, "users")); const teamsSnap = await getDocs(collection(db, "teams"));
+  useEffect(() => {
+    const fetchData = async () => {
+      const teamSnap = await getDocs(collection(db, "teams"));
+      const usersSet = new Set();
+      let total = 0;
+      let daily = 0;
+      let weekly = 0;
+      let joined = 0;
+      const payments = [];
 
-const createdUsers = new Set();
-    let daily = 0;
-    let weekly = 0;
-    let fees = 0;
+      teamSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.userId) usersSet.add(data.userId);
+        if (data.registrationFee && data.paymentStatus === "paid") {
+          joined += 1;
+          total += Number(data.registrationFee);
+          if (data.tournamentType === "Daily Scrim") {
+            daily += Number(data.registrationFee);
+          } else if (data.tournamentType === "Weekly War") {
+            weekly += Number(data.registrationFee);
+          }
 
-    teamsSnap.forEach((doc) => {
-      const data = doc.data();
+          payments.push({
+            id: docSnap.id,
+            userId: data.userId,
+            tournamentType: data.tournamentType,
+            teamName: data.teamName,
+            registrationFee: data.registrationFee,
+          });
+        }
+      });
 
-      if (data.createdBy) {
-        createdUsers.add(data.createdBy);
-      }
+      setTeamUsers(usersSet);
+      setTotalFees(total);
+      setDailyFees(daily);
+      setWeeklyFees(weekly);
+      setJoinedPlayers(joined);
+      setPaymentData(payments);
+    };
 
-      if (data.gameType === "Daily Scrim") {
-        daily++;
-      } else if (data.gameType === "Weekly War") {
-        weekly++;
-      }
+    fetchData();
+  }, []);
 
-      if (data.registrationFee) {
-        fees += Number(data.registrationFee);
-      }
-    });
-
-    setUserCount(createdUsers.size);
-    setDailyJoined(daily);
-    setWeeklyJoined(weekly);
-    setTotalFees(fees);
-  } catch (error) {
-    console.error("Error fetching dashboard data:", error);
-  }
-};
-
-fetchData();
-
-}, []);
-
-const fetchPaymentData = async () => { try { const teamsSnap = await getDocs(collection(db, "teams")); const filtered = [];
-
-teamsSnap.forEach((docSnap) => {
-    const data = docSnap.data();
-    if (data.gameType === selectedType) {
-      filtered.push({ id: docSnap.id, ...data });
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this entry?")) {
+      await deleteDoc(doc(db, "teams", id));
+      setPaymentData((prev) => prev.filter((item) => item.id !== id));
     }
-  });
+  };
 
-  setPaymentData(filtered);
-} catch (error) {
-  console.error("Error fetching payment data:", error);
+  const filteredPayments = filter === "All"
+    ? paymentData
+    : paymentData.filter((item) => item.tournamentType === filter);
+
+  return (
+    <div className="min-h-screen p-6 bg-gray-100">
+      <h2 className="text-3xl font-bold mb-6 text-center">📊 Admin Dashboard</h2>
+
+      {/* Dashboard Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+        <div className="bg-white p-4 rounded shadow text-center">
+          <h3 className="text-lg font-semibold mb-1">👤 Registered Users</h3>
+          <p className="text-2xl font-bold text-blue-600">{teamUsers.size}</p>
+        </div>
+        <div className="bg-white p-4 rounded shadow text-center">
+          <h3 className="text-lg font-semibold mb-1">🎮 Joined Players</h3>
+          <p className="text-xl font-bold text-green-600">
+            🟡 Daily: {paymentData.filter((p) => p.tournamentType === "Daily Scrim").length}
+          </p>
+          <p className="text-xl font-bold text-purple-600">
+            🔵 Weekly: {paymentData.filter((p) => p.tournamentType === "Weekly War").length}
+          </p>
+          <p className="text-sm text-gray-600 mt-1">Total: {joinedPlayers}</p>
+        </div>
+        <div className="bg-white p-4 rounded shadow text-center">
+          <h3 className="text-lg font-semibold mb-1">💸 Total Fees Collected</h3>
+          <p className="text-xl font-bold text-red-600">
+            🟡 Daily: ₹{dailyFees}
+          </p>
+          <p className="text-xl font-bold text-purple-600">
+            🔵 Weekly: ₹{weeklyFees}
+          </p>
+          <p className="text-sm text-gray-600 mt-1">Total: ₹{totalFees}</p>
+        </div>
+      </div>
+
+      {/* Filter & Payment Table */}
+      <div className="mb-4">
+        <h3 className="text-xl font-semibold mb-2">💳 Payment Details</h3>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="mb-4 p-2 rounded border border-gray-400"
+        >
+          <option value="All">All</option>
+          <option value="Daily Scrim">Daily Scrim</option>
+          <option value="Weekly War">Weekly War</option>
+        </select>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white rounded shadow">
+            <thead className="bg-gray-200">
+              <tr>
+                <th className="py-2 px-4 border">Team Name</th>
+                <th className="py-2 px-4 border">User ID</th>
+                <th className="py-2 px-4 border">Type</th>
+                <th className="py-2 px-4 border">Fee</th>
+                <th className="py-2 px-4 border">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPayments.map((item) => (
+                <tr key={item.id}>
+                  <td className="py-2 px-4 border">{item.teamName || "N/A"}</td>
+                  <td className="py-2 px-4 border">{item.userId}</td>
+                  <td className="py-2 px-4 border">{item.tournamentType}</td>
+                  <td className="py-2 px-4 border">₹{item.registrationFee}</td>
+                  <td className="py-2 px-4 border">
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filteredPayments.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="text-center py-4 text-gray-500">
+                    No payment records found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-};
-
-const handleDelete = async (id) => { try { await deleteDoc(doc(db, "teams", id)); fetchPaymentData(); } catch (error) { console.error("Error deleting team:", error); } };
-
-useEffect(() => { fetchPaymentData(); }, [selectedType]);
-
-return ( <div className="min-h-screen p-6 bg-gray-100"> <h2 className="text-3xl font-bold mb-6 text-center">📊 Admin Dashboard</h2>
-
-<div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
-    <div className="bg-white p-4 rounded shadow text-center">
-      <h3 className="text-lg font-semibold mb-1">👤 Registered Users</h3>
-      <p className="text-2xl font-bold text-blue-600">{userCount}</p>
-    </div>
-    <div className="bg-white p-4 rounded shadow text-center">
-      <h3 className="text-lg font-semibold mb-1">🎮 Daily Scrim Players</h3>
-      <p className="text-2xl font-bold text-green-600">{dailyJoined}</p>
-    </div>
-    <div className="bg-white p-4 rounded shadow text-center">
-      <h3 className="text-lg font-semibold mb-1">🔥 Weekly War Players</h3>
-      <p className="text-2xl font-bold text-purple-600">{weeklyJoined}</p>
-    </div>
-  </div>
-
-  <div className="bg-white p-4 rounded shadow text-center mb-8">
-    <h3 className="text-lg font-semibold mb-2">💰 Total Fees Collected</h3>
-    <p className="text-2xl font-bold text-red-600">₹{totalFees}</p>
-  </div>
-
-  <div className="bg-white p-4 rounded shadow">
-    <div className="flex flex-col sm:flex-row justify-between items-center mb-4">
-      <h3 className="text-xl font-semibold">💳 Payment Details</h3>
-      <select
-        value={selectedType}
-        onChange={(e) => setSelectedType(e.target.value)}
-        className="border p-2 rounded mt-2 sm:mt-0"
-      >
-        <option>Weekly War</option>
-        <option>Daily Scrim</option>
-      </select>
-    </div>
-
-    {paymentData.length === 0 ? (
-      <p className="text-gray-500 text-center">No teams found for {selectedType}</p>
-    ) : (
-      <div className="overflow-x-auto">
-        <table className="w-full border">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="border p-2">Team Name</th>
-              <th className="border p-2">Game Type</th>
-              <th className="border p-2">Fee</th>
-              <th className="border p-2">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paymentData.map((team) => (
-              <tr key={team.id}>
-                <td className="border p-2">{team.teamName || "N/A"}</td>
-                <td className="border p-2">{team.gameType}</td>
-                <td className="border p-2">₹{team.registrationFee || 0}</td>
-                <td className="border p-2">
-                  <button
-                    onClick={() => handleDelete(team.id)}
-                    className="text-white bg-red-600 px-3 py-1 rounded hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )}
-  </div>
-</div>
-
-); }
-
 export default AdminPanel;
-
