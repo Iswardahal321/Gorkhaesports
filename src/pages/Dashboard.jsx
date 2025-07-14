@@ -8,6 +8,7 @@ import {
   query,
   where,
   getDocs,
+  updateDoc,
 } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
@@ -21,10 +22,12 @@ const Dashboard = () => {
     weekly: "inactive",
   });
   const [teamExists, setTeamExists] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupImage, setPopupImage] = useState("");
 
   const navigate = useNavigate();
 
-  // ✅ Check if user's team exists
+  // ✅ Check if team exists
   useEffect(() => {
     const checkTeam = async () => {
       const currentUser = auth.currentUser;
@@ -39,6 +42,37 @@ const Dashboard = () => {
     };
 
     checkTeam();
+  }, []);
+
+  // ✅ Show popup if needed
+  useEffect(() => {
+    const checkPopup = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const q = query(collection(db, "users"), where("email", "==", user.email));
+      const snap = await getDocs(q);
+      if (snap.empty) return;
+
+      const userDoc = snap.docs[0];
+      const userRef = userDoc.ref;
+      const userData = userDoc.data();
+
+      if (!userData.popupShown) {
+        // 🔹 Get image from Firestore
+        const imgSnap = await getDocs(collection(db, "popup_info"));
+        const imgURL = imgSnap.docs[0]?.data()?.imageUrl || "";
+        if (imgURL) {
+          setPopupImage(imgURL);
+          setShowPopup(true);
+        }
+
+        // 🔹 Mark popup as shown
+        await updateDoc(userRef, { popupShown: true });
+      }
+    };
+
+    checkPopup();
   }, []);
 
   // ✅ Listen for Tournament Status
@@ -187,6 +221,25 @@ const Dashboard = () => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 🔥 Popup Modal */}
+      {showPopup && popupImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-white rounded shadow-lg p-4 max-w-xs w-full relative">
+            <img
+              src={popupImage}
+              alt="Popup"
+              className="w-full h-auto rounded"
+            />
+            <button
+              onClick={() => setShowPopup(false)}
+              className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full"
+            >
+              OK
+            </button>
+          </div>
         </div>
       )}
     </div>
