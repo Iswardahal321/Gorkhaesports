@@ -97,37 +97,43 @@ const JoinTournament = () => {
     }
 
     const options = {
-      key: "rzp_test_gYtWdi1vpxeR7f", // 🟡 Replace with LIVE key later
-      amount: orderData.amount,
-      currency: "INR",
-      name: "Gorkha Esports",
-      description: tournament.name,
-      order_id: orderData.id,
-      handler: async function (response) {
-        await addDoc(collection(db, "tournament_joins"), {
-          tournamentId: tournament.id,
-          userId: user.uid,
-          email: user.email,
-          paymentId: response.razorpay_payment_id,
-          orderId: response.razorpay_order_id,
-          type: tournament.type,
-          fee: tournament.entryFee,
-          joinedAt: new Date(),
-        });
-        setJoinInfo({
-          paymentId: response.razorpay_payment_id,
-          orderId: response.razorpay_order_id,
-          type: tournament.type,
-          fee: tournament.entryFee,
-        });
-        showMessage("✅ Payment successful & joined!", "success");
-      },
-      prefill: {
-        name: user.displayName || "Player",
-        email: user.email,
-      },
-      theme: { color: "#3399cc" },
-    };
+  key: "rzp_test_gYtWdi1vpxeR7f", // Replace with live key later
+  amount: orderData.amount,
+  currency: "INR",
+  name: "Gorkha Esports",
+  description: tournament.name,
+  order_id: orderData.id,
+
+  handler: async function (response) {
+    console.log("🔁 Razorpay Response:", response); // ✅ Yeh line yahan daalni hai
+
+    await addDoc(collection(db, "tournament_joins"), {
+      tournamentId: tournament.id,
+      userId: user.uid,
+      email: user.email,
+      paymentId: response.razorpay_payment_id,
+      orderId: response.razorpay_order_id,
+      type: tournament.type,
+      fee: tournament.entryFee,
+      joinedAt: new Date(),
+    });
+
+    setJoinInfo({
+      paymentId: response.razorpay_payment_id,
+      orderId: response.razorpay_order_id,
+      type: tournament.type,
+      fee: tournament.entryFee,
+    });
+
+    showMessage("✅ Payment successful & joined!", "success");
+  },
+
+  prefill: {
+    name: user.displayName || "Player",
+    email: user.email,
+  },
+  theme: { color: "#3399cc" },
+};
 
     const rzp = new window.Razorpay(options);
     rzp.open();
