@@ -9,12 +9,12 @@ export default async function handler(req, res) {
   const { amount } = req.body;
 
   const razorpay = new Razorpay({
-    key_id: "rzp_test_gYtWdi1vpxeR7f",         // 🟡 Replace with LIVE key later
-    key_secret: "xCAvwkYqQvrNqgazbN5FtOX1l"     // 🟡 Replace with LIVE secret later
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
   });
 
   const options = {
-    amount: amount * 100,  // Razorpay needs paise
+    amount: amount * 100,
     currency: "INR",
     receipt: "receipt_order_" + Math.floor(Math.random() * 1000000),
     payment_capture: 1,
