@@ -17,7 +17,8 @@
   transform: rotateY(180deg);
 }
 
-.side {
+/* 💥 This is critical fix */
+.card .side {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -27,17 +28,29 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
-.front {
+.card .front {
   background: #fff;
   z-index: 2;
+  pointer-events: none; /* 🛠️ Disable clicks on front after flip */
 }
 
-.back {
+.card.active .front {
+  z-index: 1;
+}
+
+.card .back {
   background: #fef3c7;
   transform: rotateY(180deg);
   padding: 20px;
+  pointer-events: none; /* ❌ THIS IS WHY BUTTON NOT WORKING */
 }
 
+.card.active .back {
+  pointer-events: auto; /* ✅ ENABLE clicks when active */
+  z-index: 3;
+}
+
+/* Image Styles */
 .img {
   height: 110px;
   background-position: center;
