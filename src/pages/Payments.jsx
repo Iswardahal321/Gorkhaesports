@@ -14,7 +14,7 @@ function Payments() {
         const data = snap.docs.map((doc) => doc.data());
         setPayments(data);
       } catch (error) {
-        console.error("Error fetching payments:", error);
+        console.error("🔥 Error fetching payments:", error);
       } finally {
         setLoading(false);
       }
@@ -23,13 +23,14 @@ function Payments() {
     fetchPayments();
   }, []);
 
-  const filteredPayments = payments.filter((p) => p?.type === filter);
+  const filteredPayments = Array.isArray(payments)
+    ? payments.filter((p) => p?.type === filter)
+    : [];
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <h2 className="text-2xl font-bold mb-6 text-center">💳 Payment Details</h2>
 
-      {/* Filter Dropdown */}
       <div className="mb-4 flex justify-center">
         <select
           value={filter}
@@ -41,7 +42,6 @@ function Payments() {
         </select>
       </div>
 
-      {/* Table */}
       <div className="overflow-x-auto">
         {loading ? (
           <p className="text-center text-gray-600">🔄 Loading payments...</p>
