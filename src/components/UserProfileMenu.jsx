@@ -5,7 +5,16 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
 } from "firebase/auth";
-import { doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+} from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
 
@@ -47,14 +56,12 @@ const UserProfileMenu = () => {
         setPhone(data.phone || "");
       }
 
-      // ✅ Fetch from daily_slots
       const dailySnap = await getDocs(collection(db, "daily_slots"));
       const daily = dailySnap.docs.find((doc) => doc.data().userId === user.uid);
       if (daily) {
         setDailySlot(daily.data().slotNumber || "Assigned");
       }
 
-      // ✅ Fetch from weekly_slots
       const weeklySnap = await getDocs(collection(db, "weekly_slots"));
       const weekly = weeklySnap.docs.find((doc) => doc.data().userId === user.uid);
       if (weekly) {
@@ -97,13 +104,21 @@ const UserProfileMenu = () => {
   };
 
   const handleLogout = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      const q = query(collection(db, "users"), where("email", "==", user.email));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const userRef = snap.docs[0].ref;
+        await updateDoc(userRef, { popupShown: false }); // ✅ Reset popup flag
+      }
+    }
     await signOut(auth);
     navigate("/");
   };
 
   return (
     <div className="absolute top-4 right-4 z-50" ref={ref}>
-      {/* Avatar */}
       <button
         onClick={() => setShowOverlay(!showOverlay)}
         className="w-10 h-10 bg-yellow-500 text-white rounded-full flex items-center justify-center text-lg font-semibold shadow-md hover:opacity-90"
@@ -111,7 +126,6 @@ const UserProfileMenu = () => {
         {user?.email?.charAt(0)?.toUpperCase() || "U"}
       </button>
 
-      {/* Overlay */}
       {showOverlay && (
         <div className="absolute top-12 right-0 bg-white shadow-xl rounded-md p-4 w-72 border z-50">
           <h2 className="text-lg font-bold mb-3">🙍‍♂️ User Profile</h2>
@@ -124,18 +138,17 @@ const UserProfileMenu = () => {
           </div>
 
           <div className="text-sm text-gray-700 mb-4">
-  
-  <div className="grid grid-cols-2 gap-2 mt-1 border border-gray-200 p-2 rounded bg-gray-50">
-    <div>
-      <p className="font-medium text-gray-600">Daily Scrim</p>
-      <p className="text-blue-600 font-semibold">Slot {dailySlot || "N/A"}</p>
-    </div>
-    <div>
-      <p className="font-medium text-gray-600">Weekly War</p>
-      <p className="text-purple-600 font-semibold">Slot {weeklySlot || "N/A"}</p>
-    </div>
-  </div>
-</div>
+            <div className="grid grid-cols-2 gap-2 mt-1 border border-gray-200 p-2 rounded bg-gray-50">
+              <div>
+                <p className="font-medium text-gray-600">Daily Scrim</p>
+                <p className="text-blue-600 font-semibold">Slot {dailySlot || "N/A"}</p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-600">Weekly War</p>
+                <p className="text-purple-600 font-semibold">Slot {weeklySlot || "N/A"}</p>
+              </div>
+            </div>
+          </div>
 
           <div className="text-sm text-gray-700 mb-3">
             <strong>📞 Phone:</strong> <br /> {phone || "Not added"}
@@ -164,7 +177,6 @@ const UserProfileMenu = () => {
         </div>
       )}
 
-      {/* Phone Modal */}
       {showPhoneModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white p-5 rounded shadow-lg w-80">
@@ -189,7 +201,6 @@ const UserProfileMenu = () => {
         </div>
       )}
 
-      {/* Password Modal */}
       {showPasswordModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white p-5 rounded shadow-lg w-80">
