@@ -31,6 +31,7 @@ return ( <div className="min-h-screen p-6 bg-gray-100"> <h2 className="text-3xl 
       <option value="Weekly War">Weekly War</option>
     </select>
 
+    
     <div className="flex gap-2">
       <input
         type="text"
