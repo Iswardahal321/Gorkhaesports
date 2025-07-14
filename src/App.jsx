@@ -15,7 +15,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import AddTeam from "./pages/AddTeam.jsx";
 import JoinTournament from "./pages/JoinTournament.jsx";
 import SlotList from "./pages/SlotList.jsx";
-import IDPass from "./pages/IDPass.jsx"; // ✅ User side
+import IDPass from "./pages/IDPass.jsx";
 
 // ✅ Admin Pages
 import AdminPanel from "./pages/AdminPanel.jsx";
@@ -24,8 +24,8 @@ import AddSlot from "./pages/AddSlot.jsx";
 import AddGame from "./pages/AddGame.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
 import UploadResult from "./pages/UploadResult.jsx";
-import AdminAddIDPass from "./pages/AdminAddIDPass.jsx"; // ✅ NEW import
-import Payments from "./pages/Payments.jsx"; // ✅ NEWLY ADDED PAGE
+import AdminAddIDPass from "./pages/AdminAddIDPass.jsx";
+import Payments from "./pages/Payments.jsx";
 
 // ✅ Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -36,6 +36,16 @@ import AdminLayout from "./components/AdminLayout.jsx";
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -46,6 +56,18 @@ function App() {
   }, []);
 
   if (loading) return <div className="text-center mt-10">Loading...</div>;
+
+  // ❌ Show message if opened on Desktop
+  if (isDesktop) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-black text-white text-center px-4">
+        <div>
+          <h1 className="text-2xl font-bold mb-2">⚠️ Please use your phone</h1>
+          <p className="text-sm">This website is optimized for mobile devices only.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Router>
@@ -177,8 +199,6 @@ function App() {
             </AdminRoute>
           }
         />
-
-        {/* ✅ NEWLY ADDED ADMIN PAGE */}
         <Route
           path="/admin/payments"
           element={
@@ -190,7 +210,7 @@ function App() {
           }
         />
 
-        {/* ✅ Catch-all Route */}
+        {/* ✅ Catch-all */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
