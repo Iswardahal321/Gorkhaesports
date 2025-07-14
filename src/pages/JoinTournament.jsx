@@ -1,3 +1,5 @@
+// 📁 src/pages/JoinTournament.jsx
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -69,65 +71,66 @@ const JoinTournament = () => {
   }, [id]);
 
   const handlePayment = async () => {
-    const loaded = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
-    if (!loaded) {
-      showMessage("❌ Razorpay SDK failed to load", "error");
+    const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
+    if (!res) {
+      showMessage("❌ Razorpay SDK failed to load.", "error");
       return;
     }
 
     const user = auth.currentUser;
-    if (!user) {
-      showMessage("❌ You must be logged in", "error");
+    if (!user || !tournament) {
+      showMessage("❌ User or tournament not found.", "error");
       return;
     }
 
-    try {
-      // 🔸 Call serverless API to create order
-      const res = await fetch("/api/createOrder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: tournament.entryFee }),
-      });
+    // 🔁 Create order from API
+    const orderRes = await fetch("/api/createOrder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: tournament.entryFee }),
+    });
 
-      const orderData = await res.json();
-
-      const options = {
-        key: "rzp_test_AvXRP4rfovLSun", // 🔁 Replace with LIVE key later
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "Gorkha Esports",
-        description: tournament.name,
-        order_id: orderData.id, // ✅ Razorpay Order ID
-        handler: async function (response) {
-          await addDoc(collection(db, "tournament_joins"), {
-            tournamentId: tournament.id,
-            userId: user.uid,
-            email: user.email,
-            paymentId: response.razorpay_payment_id,
-            orderId: response.razorpay_order_id,
-            type: tournament.type,
-            fee: tournament.entryFee,
-            joinedAt: new Date(),
-          });
-          setJoinInfo({
-            paymentId: response.razorpay_payment_id,
-            type: tournament.type,
-            fee: tournament.entryFee,
-          });
-          showMessage("✅ Joined successfully!", "success");
-        },
-        prefill: {
-          name: user.displayName || "Player",
-          email: user.email,
-        },
-        theme: { color: "#3399cc" },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (err) {
-      showMessage("❌ Payment failed. Try again.", "error");
+    const orderData = await orderRes.json();
+    if (!orderData.id) {
+      showMessage("❌ Failed to create order.", "error");
+      return;
     }
+
+    const options = {
+      key: "rzp_test_gYtWdi1vpxeR7f", // 🟡 Replace with LIVE key later
+      amount: orderData.amount,
+      currency: "INR",
+      name: "Gorkha Esports",
+      description: tournament.name,
+      order_id: orderData.id,
+      handler: async function (response) {
+        await addDoc(collection(db, "tournament_joins"), {
+          tournamentId: tournament.id,
+          userId: user.uid,
+          email: user.email,
+          paymentId: response.razorpay_payment_id,
+          orderId: response.razorpay_order_id,
+          type: tournament.type,
+          fee: tournament.entryFee,
+          joinedAt: new Date(),
+        });
+        setJoinInfo({
+          paymentId: response.razorpay_payment_id,
+          orderId: response.razorpay_order_id,
+          type: tournament.type,
+          fee: tournament.entryFee,
+        });
+        showMessage("✅ Payment successful & joined!", "success");
+      },
+      prefill: {
+        name: user.displayName || "Player",
+        email: user.email,
+      },
+      theme: { color: "#3399cc" },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
   };
 
   const showMessage = (text, type) => {
@@ -158,8 +161,11 @@ const JoinTournament = () => {
 
       {joinInfo ? (
         <div className="p-4 bg-green-100 rounded">
-          <h3 className="text-lg font-semibold text-green-700 mb-2">🎫 Payment Details</h3>
+          <h3 className="text-lg font-semibold text-green-700 mb-2">
+            🎫 Payment Details
+          </h3>
           <p className="text-sm">🆔 Payment ID: {joinInfo.paymentId}</p>
+          <p className="text-sm">📦 Order ID: {joinInfo.orderId}</p>
           <p className="text-sm">🎮 Type: {joinInfo.type}</p>
           <p className="text-sm">💰 Paid: ₹{joinInfo.fee}</p>
         </div>
