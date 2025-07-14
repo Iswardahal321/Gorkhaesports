@@ -1,4 +1,3 @@
-// src/components/AdminRoute.jsx
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { onAuthStateChanged } from "firebase/auth";
@@ -21,8 +20,12 @@ function AdminRoute({ children }) {
         } catch (error) {
           console.error("❌ Error fetching role:", error);
         }
+      } else {
+        // ✅ Handle unauthenticated users also
+        setIsAdmin(false);
       }
-      setLoading(false);
+
+      setLoading(false); // ✅ Always stop loading
     });
 
     return () => unsubscribe();
