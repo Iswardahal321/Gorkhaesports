@@ -2,6 +2,7 @@
   "name": "gorkha-esports",
   "version": "1.0.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "@coreui/icons": "^2.1.0",
     "@coreui/icons-react": "^2.0.1",
@@ -29,7 +30,6 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-  "homepage": ".",
   "eslintConfig": {
     "extends": ["react-app", "react-app/jest"]
   },
