@@ -16,6 +16,7 @@ import AddTeam from "./pages/AddTeam.jsx";
 import JoinTournament from "./pages/JoinTournament.jsx";
 import SlotList from "./pages/SlotList.jsx";
 import IDPass from "./pages/IDPass.jsx";
+import PopupConfig from "./pages/PopupConfig.jsx";
 
 // ✅ Admin Pages
 import AdminPanel from "./pages/AdminPanel.jsx";
@@ -137,6 +138,16 @@ function App() {
                 <AdminPanel />
               </AdminLayout>
             </AdminRoute>
+          }
+        />
+         <Route
+          path="/popup-config"
+          element={
+            <PrivateRoute>
+              <Layout>
+                <PopupConfig />
+              </Layout>
+            </PrivateRoute>
           }
         />
         <Route
