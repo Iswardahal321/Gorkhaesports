@@ -1,62 +1,42 @@
+// 📁 src/pages/Payments.jsx
 import React, { useEffect, useState } from "react";
-import {
-  collection,
-  getDocs,
-  deleteDoc,
-  doc,
-  query,
-  where,
-} from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase/config";
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
-  const [selectedType, setSelectedType] = useState("Weekly War");
   const [loading, setLoading] = useState(true);
-
-  const fetchPayments = async (type) => {
-    setLoading(true);
-    try {
-      const q = query(collection(db, "tournament_joins"), where("type", "==", type));
-      const snapshot = await getDocs(q);
-
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      setPayments(data);
-    } catch (error) {
-      console.error("❌ Error fetching payments:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this payment record?")) {
-      try {
-        await deleteDoc(doc(db, "tournament_joins", id));
-        setPayments((prev) => prev.filter((p) => p.id !== id));
-      } catch (err) {
-        console.error("❌ Error deleting:", err);
-      }
-    }
-  };
+  const [selectedType, setSelectedType] = useState("Daily Scrim");
 
   useEffect(() => {
-    fetchPayments(selectedType);
-  }, [selectedType]);
+    const fetchPayments = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "tournament_joins"));
+        const allPayments = snapshot.docs.map((doc) => doc.data());
+        setPayments(allPayments);
+      } catch (error) {
+        console.error("❌ Error fetching payments:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPayments();
+  }, []);
+
+  const filteredPayments = payments.filter(
+    (p) => p?.type === selectedType
+  );
 
   return (
     <div className="min-h-screen p-6 bg-gray-100">
-      <h2 className="text-3xl font-bold mb-6 text-center">💳 Payment Details</h2>
+      <h2 className="text-3xl font-bold mb-6 text-center">💰 Payment Details</h2>
 
       <div className="mb-6 flex justify-center">
         <select
           value={selectedType}
           onChange={(e) => setSelectedType(e.target.value)}
-          className="border p-2 rounded"
+          className="border p-2 rounded shadow bg-white"
         >
           <option value="Daily Scrim">Daily Scrim</option>
           <option value="Weekly War">Weekly War</option>
@@ -64,44 +44,34 @@ const Payments = () => {
       </div>
 
       {loading ? (
-        <p className="text-center text-gray-500">⏳ Loading payments...</p>
-      ) : payments.length === 0 ? (
-        <p className="text-center text-gray-500">No payment records found.</p>
+        <p className="text-center text-gray-600">⏳ Loading payment details...</p>
+      ) : filteredPayments.length === 0 ? (
+        <p className="text-center text-gray-500">No payments found for this type.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white rounded shadow">
-            <thead>
-              <tr className="bg-gray-200 text-left">
-                <th className="p-3">#</th>
-                <th className="p-3">User ID</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Payment ID</th>
-                <th className="p-3">Fee</th>
-                <th className="p-3">Type</th>
-                <th className="p-3">Joined At</th>
-                <th className="p-3">Tournament ID</th>
-                <th className="p-3">Action</th>
+          <table className="w-full bg-white rounded shadow text-sm">
+            <thead className="bg-blue-600 text-white">
+              <tr>
+                <th className="p-3 text-left">User ID</th>
+                <th className="p-3 text-left">Email</th>
+                <th className="p-3 text-left">Payment ID</th>
+                <th className="p-3 text-left">Amount</th>
+                <th className="p-3 text-left">Type</th>
+                <th className="p-3 text-left">Joined At</th>
               </tr>
             </thead>
             <tbody>
-              {payments.map((payment, idx) => (
-                <tr key={payment.id} className="border-b hover:bg-gray-100">
-                  <td className="p-3">{idx + 1}</td>
-                  <td className="p-3">{payment.userId || "N/A"}</td>
-                  <td className="p-3">{payment.email || "N/A"}</td>
-                  <td className="p-3">{payment.paymentId || "N/A"}</td>
-                  <td className="p-3">₹{payment.fee || 0}</td>
-                  <td className="p-3">{payment.type}</td>
-                  <td className="p-3">{payment.joinedAt || "N/A"}</td>
-                  <td className="p-3">{payment.tournamentId || "N/A"}</td>
-                  <td className="p-3">
-                    <button
-                      onClick={() => handleDelete(payment.id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                    >
-                      🗑 Delete
-                    </button>
-                  </td>
+              {filteredPayments.map((payment, index) => (
+                <tr
+                  key={index}
+                  className="border-b hover:bg-gray-50 transition-all"
+                >
+                  <td className="p-3">{payment?.userId ?? "N/A"}</td>
+                  <td className="p-3">{payment?.email ?? "N/A"}</td>
+                  <td className="p-3">{payment?.paymentId ?? "N/A"}</td>
+                  <td className="p-3">₹{payment?.fee ?? "0"}</td>
+                  <td className="p-3">{payment?.type ?? "Unknown"}</td>
+                  <td className="p-3">{payment?.joinedAt ?? "N/A"}</td>
                 </tr>
               ))}
             </tbody>
