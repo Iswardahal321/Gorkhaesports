@@ -8,6 +8,7 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   updateDoc,
 } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
@@ -44,7 +45,7 @@ const Dashboard = () => {
     checkTeam();
   }, []);
 
-  // ✅ Show popup if needed
+  // ✅ Show popup if needed (from popup_config)
   useEffect(() => {
     const checkPopup = async () => {
       const user = auth.currentUser;
@@ -59,16 +60,18 @@ const Dashboard = () => {
       const userData = userDoc.data();
 
       if (!userData.popupShown) {
-        // 🔹 Get image from Firestore
-        const imgSnap = await getDocs(collection(db, "popup_info"));
-        const imgURL = imgSnap.docs[0]?.data()?.imageUrl || "";
-        if (imgURL) {
-          setPopupImage(imgURL);
-          setShowPopup(true);
-        }
+        // 🔹 Fetch from popup_config/global
+        const configRef = doc(db, "popup_config", "global");
+        const configSnap = await getDoc(configRef);
 
-        // 🔹 Mark popup as shown
-        await updateDoc(userRef, { popupShown: true });
+        if (configSnap.exists()) {
+          const data = configSnap.data();
+          if (data.active && data.imageUrl) {
+            setPopupImage(data.imageUrl);
+            setShowPopup(true);
+            await updateDoc(userRef, { popupShown: true });
+          }
+        }
       }
     };
 
