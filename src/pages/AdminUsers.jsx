@@ -15,6 +15,7 @@ function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const OWNER_EMAIL = "junmain8@gmail.com";
 
   const fetchUsers = async () => {
     const usersSnapshot = await getDocs(collection(db, "users"));
@@ -48,7 +49,8 @@ function AdminUsers() {
   };
 
   const openModal = (user) => {
-    setSelectedUser({ ...user }); // clone to avoid auto update
+    if (user.email === OWNER_EMAIL) return; // 🔒 Owner is protected
+    setSelectedUser({ ...user });
     setModalOpen(true);
   };
 
@@ -76,6 +78,7 @@ function AdminUsers() {
           <thead className="bg-gray-200 text-xs">
             <tr>
               <th className="p-2 border">UID (short)</th>
+              <th className="p-2 border">Email</th>
               <th className="p-2 border">Actions</th>
             </tr>
           </thead>
@@ -83,16 +86,27 @@ function AdminUsers() {
             {users.map((u) => (
               <tr key={u.id} className="text-center">
                 <td className="p-2 border">{u.id.slice(0, 8)}...</td>
+                <td className="p-2 border">{u.email || "N/A"}</td>
                 <td className="p-2 border flex justify-center gap-3">
                   <button
+                    disabled={u.email === OWNER_EMAIL}
                     onClick={() => openModal(u)}
-                    className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
+                    className={`px-3 py-1 rounded text-xs ${
+                      u.email === OWNER_EMAIL
+                        ? "bg-gray-400 cursor-not-allowed text-white"
+                        : "bg-blue-500 text-white"
+                    }`}
                   >
                     View
                   </button>
                   <button
+                    disabled={u.email === OWNER_EMAIL}
                     onClick={() => handleDelete(u.id, u.email)}
-                    className="bg-red-500 text-white px-3 py-1 rounded text-xs"
+                    className={`px-3 py-1 rounded text-xs ${
+                      u.email === OWNER_EMAIL
+                        ? "bg-gray-400 cursor-not-allowed text-white"
+                        : "bg-red-500 text-white"
+                    }`}
                   >
                     Delete
                   </button>
