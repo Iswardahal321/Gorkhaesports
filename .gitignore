@@ -1,0 +1,13 @@
+# ✅ Standard ignore list
+
+node_modules/
+build/
+.env
+.env.local
+.DS_Store
+*.log
+.cache/
+.next/
+out/
+dist/
+firebase-debug.log
