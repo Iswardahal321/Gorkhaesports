@@ -141,15 +141,15 @@ function App() {
           }
         />
          <Route
-          path="/popup-config"
-          element={
-            <PrivateRoute>
-              <Layout>
-                <PopupConfig />
-              </Layout>
-            </PrivateRoute>
-          }
-        />
+  path="/admin/popup-config"
+  element={
+    <AdminRoute>
+      <AdminLayout>
+        <PopupConfig />
+      </AdminLayout>
+    </AdminRoute>
+  }
+/>
         <Route
           path="/admin/teams"
           element={
