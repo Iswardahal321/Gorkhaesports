@@ -2,72 +2,57 @@ import React, { useEffect, useState } from "react";
 import {
   collection,
   getDocs,
-  deleteDoc,
-  doc,
   query,
   where,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 
-const Payments = () => {
-  const [payments, setPayments] = useState([]);
+function Payments() {
   const [selectedType, setSelectedType] = useState("daily_scrim");
+  const [paymentData, setPaymentData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchPayments = async (type) => {
-    setLoading(true);
+  const fetchPayments = async () => {
     try {
-      const q = query(collection(db, "teams"), where("type", "==", type));
-      const snapshot = await getDocs(q);
-
-      const data = snapshot.docs.map((doc) => {
-        const d = doc.data();
+      setLoading(true);
+      const q = query(
+        collection(db, "tournament_joins"),
+        where("type", "==", selectedType)
+      );
+      const snap = await getDocs(q);
+      const payments = snap.docs.map((doc) => {
+        const data = doc.data();
         return {
-          id: doc.id,
-          userId: d.userId || "N/A",
-          email: d.email || "N/A",
-          paymentId: d.paymentId || "N/A",
-          fee: d.registrationFee || 0,
-          type: d.type || "N/A",
-          joinedAt: d.joinedAt
-            ? new Date(d.joinedAt.seconds * 1000).toLocaleString()
-            : "N/A",
-          tournamentId: d.tournamentId || "N/A",
+          userId: data.userId || "N/A",
+          email: data.email || "N/A",
+          paymentId: data.paymentId || "N/A",
+          fee: data.fee || "0",
+          type: data.type || "unknown",
+          tournamentId: data.tournamentId || "N/A",
+          joinedAt: data.joinedAt?.toDate().toLocaleString() || "N/A",
         };
       });
-
-      setPayments(data);
+      setPaymentData(payments);
     } catch (error) {
-      console.error("❌ Error fetching payments:", error);
+      console.error("❌ Failed to fetch payment data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this payment record?")) {
-      try {
-        await deleteDoc(doc(db, "teams", id));
-        setPayments((prev) => prev.filter((p) => p.id !== id));
-      } catch (err) {
-        console.error("❌ Error deleting:", err);
-      }
-    }
-  };
-
   useEffect(() => {
-    fetchPayments(selectedType);
+    fetchPayments();
   }, [selectedType]);
 
   return (
     <div className="min-h-screen p-6 bg-gray-100">
       <h2 className="text-3xl font-bold mb-6 text-center">💳 Payment Details</h2>
 
-      <div className="mb-6 flex justify-center">
+      <div className="mb-4">
         <select
           value={selectedType}
           onChange={(e) => setSelectedType(e.target.value)}
-          className="border p-2 rounded"
+          className="px-4 py-2 rounded border border-gray-300"
         >
           <option value="daily_scrim">Daily Scrim</option>
           <option value="weekly_war">Weekly War</option>
@@ -75,44 +60,33 @@ const Payments = () => {
       </div>
 
       {loading ? (
-        <p className="text-center text-gray-500">⏳ Loading payments...</p>
-      ) : payments.length === 0 ? (
-        <p className="text-center text-gray-500">No payment records found.</p>
+        <p className="text-gray-600 animate-pulse">⏳ Loading payment data...</p>
+      ) : paymentData.length === 0 ? (
+        <p className="text-gray-500">No payment records found.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white rounded shadow">
-            <thead>
-              <tr className="bg-gray-200 text-left text-sm">
-                <th className="p-3">#</th>
-                <th className="p-3">User ID</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Payment ID</th>
-                <th className="p-3">Fee</th>
-                <th className="p-3">Type</th>
-                <th className="p-3">Tournament ID</th>
-                <th className="p-3">Joined At</th>
-                <th className="p-3">Action</th>
+          <table className="min-w-full bg-white shadow rounded">
+            <thead className="bg-gray-200">
+              <tr>
+                <th className="py-2 px-4 border">User ID</th>
+                <th className="py-2 px-4 border">Email</th>
+                <th className="py-2 px-4 border">Payment ID</th>
+                <th className="py-2 px-4 border">Fee</th>
+                <th className="py-2 px-4 border">Type</th>
+                <th className="py-2 px-4 border">Tournament ID</th>
+                <th className="py-2 px-4 border">Joined At</th>
               </tr>
             </thead>
             <tbody>
-              {payments.map((payment, idx) => (
-                <tr key={payment.id} className="border-b hover:bg-gray-100 text-sm">
-                  <td className="p-3">{idx + 1}</td>
-                  <td className="p-3">{payment.userId}</td>
-                  <td className="p-3">{payment.email}</td>
-                  <td className="p-3">{payment.paymentId}</td>
-                  <td className="p-3">₹{payment.fee}</td>
-                  <td className="p-3">{payment.type}</td>
-                  <td className="p-3">{payment.tournamentId}</td>
-                  <td className="p-3">{payment.joinedAt}</td>
-                  <td className="p-3">
-                    <button
-                      onClick={() => handleDelete(payment.id)}
-                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                    >
-                      🗑 Delete
-                    </button>
-                  </td>
+              {paymentData.map((data, index) => (
+                <tr key={index} className="text-center">
+                  <td className="py-2 px-4 border">{data.userId}</td>
+                  <td className="py-2 px-4 border">{data.email}</td>
+                  <td className="py-2 px-4 border">{data.paymentId}</td>
+                  <td className="py-2 px-4 border">₹{data.fee}</td>
+                  <td className="py-2 px-4 border">{data.type}</td>
+                  <td className="py-2 px-4 border">{data.tournamentId}</td>
+                  <td className="py-2 px-4 border">{data.joinedAt}</td>
                 </tr>
               ))}
             </tbody>
@@ -121,6 +95,6 @@ const Payments = () => {
       )}
     </div>
   );
-};
+}
 
 export default Payments;
