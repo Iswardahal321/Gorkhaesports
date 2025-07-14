@@ -5,7 +5,6 @@ import { FiMenu, FiX } from "react-icons/fi";
 const AdminSidebar = () => {
   const [open, setOpen] = useState(false);
 
-  
   return (
     <>
       {/* ☰ Hamburger */}
@@ -46,6 +45,7 @@ const AdminSidebar = () => {
           <Link to="/admin/add-game" className="block hover:underline">🎮 Add Game</Link>
           <Link to="/admin/users" className="block hover:underline">🧑‍💼 All Users</Link>
           <Link to="/admin/upload-result" className="block hover:underline">📤 Upload Result</Link>
+          <Link to="/admin/popup-config" className="block hover:underline">📢 Popup Config</Link> {/* ✅ New Link */}
         </nav>
       </div>
     </>
