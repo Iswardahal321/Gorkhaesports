@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/razorpay.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
+}
