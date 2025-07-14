@@ -10,7 +10,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
-import { loadScript } from "../utils/loadScript";
+import { loadScript } from "../utils/loadScript"; // ✅ This should dynamically load Razorpay script
 
 const JoinTournament = () => {
   const { id } = useParams();
@@ -69,45 +69,50 @@ const JoinTournament = () => {
   }, [id]);
 
   const handlePayment = async () => {
-    try {
-      await loadScript("https://checkout.razorpay.com/v1/checkout.js");
-      const user = auth.currentUser;
-
-      const options = {
-        key: "rzp_test_AvXRP4rfovLSun",
-        amount: tournament.entryFee * 100,
-        currency: "INR",
-        name: "Gorkha Esports",
-        description: tournament.name,
-        handler: async function (response) {
-          await addDoc(collection(db, "tournament_joins"), {
-            tournamentId: tournament.id,
-            userId: user.uid,
-            email: user.email,
-            paymentId: response.razorpay_payment_id,
-            type: tournament.type,
-            fee: tournament.entryFee,
-            joinedAt: new Date(),
-          });
-          setJoinInfo({
-            paymentId: response.razorpay_payment_id,
-            type: tournament.type,
-            fee: tournament.entryFee,
-          });
-          showMessage("✅ Joined successfully!", "success");
-        },
-        prefill: {
-          name: user.displayName || "User",
-          email: user.email,
-        },
-        theme: { color: "#3399cc" },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (error) {
-      showMessage("❌ Payment failed. Try again.", "error");
+    const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
+    if (!res) {
+      showMessage("❌ Razorpay SDK failed to load. Check your internet.", "error");
+      return;
     }
+
+    const user = auth.currentUser;
+    if (!user) {
+      showMessage("❌ You must be logged in.", "error");
+      return;
+    }
+
+    const options = {
+      key: "rzp_test_AvXRP4rfovLSun", // 🔁 Replace with LIVE KEY later: rzp_live_XXXX
+      amount: tournament.entryFee * 100,
+      currency: "INR",
+      name: "Gorkha Esports",
+      description: tournament.name,
+      handler: async function (response) {
+        await addDoc(collection(db, "tournament_joins"), {
+          tournamentId: tournament.id,
+          userId: user.uid,
+          email: user.email,
+          paymentId: response.razorpay_payment_id,
+          type: tournament.type,
+          fee: tournament.entryFee,
+          joinedAt: new Date(),
+        });
+        setJoinInfo({
+          paymentId: response.razorpay_payment_id,
+          type: tournament.type,
+          fee: tournament.entryFee,
+        });
+        showMessage("✅ Payment successful & joined!", "success");
+      },
+      prefill: {
+        name: user.displayName || "Player",
+        email: user.email,
+      },
+      theme: { color: "#3399cc" },
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
   };
 
   const showMessage = (text, type) => {
@@ -127,7 +132,9 @@ const JoinTournament = () => {
       {message && (
         <div
           className={`mb-4 px-4 py-2 rounded ${
-            message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+            message.type === "success"
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
           }`}
         >
           {message.text}
@@ -136,7 +143,9 @@ const JoinTournament = () => {
 
       {joinInfo ? (
         <div className="p-4 bg-green-100 rounded">
-          <h3 className="text-lg font-semibold text-green-700 mb-2">🎫 Payment Details</h3>
+          <h3 className="text-lg font-semibold text-green-700 mb-2">
+            🎫 Payment Details
+          </h3>
           <p className="text-sm">🆔 Payment ID: {joinInfo.paymentId}</p>
           <p className="text-sm">🎮 Type: {joinInfo.type}</p>
           <p className="text-sm">💰 Paid: ₹{joinInfo.fee}</p>
