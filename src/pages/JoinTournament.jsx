@@ -70,55 +70,64 @@ const JoinTournament = () => {
 
   const handlePayment = async () => {
     const loaded = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
-    if (!loaded) return showMessage("❌ Razorpay SDK failed to load.", "error");
+    if (!loaded) {
+      showMessage("❌ Razorpay SDK failed to load", "error");
+      return;
+    }
 
     const user = auth.currentUser;
-    if (!user || !tournament) return;
+    if (!user) {
+      showMessage("❌ You must be logged in", "error");
+      return;
+    }
 
-    // 🔸 Create Order on Server
-    const res = await fetch("/api/createOrder", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: tournament.entryFee * 100 }),
-    });
+    try {
+      // 🔸 Call serverless API to create order
+      const res = await fetch("/api/createOrder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: tournament.entryFee }),
+      });
 
-    const orderData = await res.json();
+      const orderData = await res.json();
 
-    const options = {
-      key: "rzp_test_AvXRP4rfovLSun", // 🔁 Replace with LIVE key later
-      amount: orderData.amount,
-      currency: "INR",
-      name: "Gorkha Esports",
-      description: tournament.name,
-      order_id: orderData.id, // ✅ Razorpay Order ID
-      handler: async function (response) {
-        await addDoc(collection(db, "tournament_joins"), {
-          tournamentId: tournament.id,
-          userId: user.uid,
+      const options = {
+        key: "rzp_test_AvXRP4rfovLSun", // 🔁 Replace with LIVE key later
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: "Gorkha Esports",
+        description: tournament.name,
+        order_id: orderData.id, // ✅ Razorpay Order ID
+        handler: async function (response) {
+          await addDoc(collection(db, "tournament_joins"), {
+            tournamentId: tournament.id,
+            userId: user.uid,
+            email: user.email,
+            paymentId: response.razorpay_payment_id,
+            orderId: response.razorpay_order_id,
+            type: tournament.type,
+            fee: tournament.entryFee,
+            joinedAt: new Date(),
+          });
+          setJoinInfo({
+            paymentId: response.razorpay_payment_id,
+            type: tournament.type,
+            fee: tournament.entryFee,
+          });
+          showMessage("✅ Joined successfully!", "success");
+        },
+        prefill: {
+          name: user.displayName || "Player",
           email: user.email,
-          paymentId: response.razorpay_payment_id,
-          orderId: response.razorpay_order_id,
-          signature: response.razorpay_signature,
-          type: tournament.type,
-          fee: tournament.entryFee,
-          joinedAt: new Date(),
-        });
-        setJoinInfo({
-          paymentId: response.razorpay_payment_id,
-          type: tournament.type,
-          fee: tournament.entryFee,
-        });
-        showMessage("✅ Payment success & joined!", "success");
-      },
-      prefill: {
-        name: user.displayName || "Player",
-        email: user.email,
-      },
-      theme: { color: "#3399cc" },
-    };
+        },
+        theme: { color: "#3399cc" },
+      };
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      showMessage("❌ Payment failed. Try again.", "error");
+    }
   };
 
   const showMessage = (text, type) => {
@@ -136,9 +145,13 @@ const JoinTournament = () => {
       <p className="text-gray-700 mb-4">💰 Entry Fee: ₹{tournament.entryFee}</p>
 
       {message && (
-        <div className={`mb-4 px-4 py-2 rounded ${message.type === "success"
-            ? "bg-green-100 text-green-700"
-            : "bg-red-100 text-red-700"}`}>
+        <div
+          className={`mb-4 px-4 py-2 rounded ${
+            message.type === "success"
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-700"
+          }`}
+        >
           {message.text}
         </div>
       )}
