@@ -1,5 +1,3 @@
-// 📁 src/pages/Dashboard.jsx
-
 import React, { useEffect, useState } from "react";
 import {
   collection,
@@ -124,35 +122,50 @@ const Dashboard = () => {
   }, []);
 
   const handleJoin = async (type, id, fee) => {
-    const res = await fetch("/api/razorpay", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: fee || 100 }),
-    });
+    try {
+      const res = await fetch("/api/razorpay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: fee || 100 }),
+      });
 
-    const data = await res.json();
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`API Error: ${err}`);
+      }
 
-    const options = {
-      key: data.key,
-      amount: data.amount,
-      currency: data.currency,
-      name: "Tournament Payment",
-      description: "Entry Fee",
-      order_id: data.order_id,
-      handler: function (response) {
-        alert("✅ Payment Successful!");
-        const normalizedType = type.toLowerCase().replace(/\s/g, "");
-        navigate(`/join-tournament/${normalizedType}/${id}`);
-      },
-      prefill: {
-        name: "Player",
-        email: auth.currentUser?.email || "",
-      },
-      theme: { color: "#1e3a8a" },
-    };
+      const data = await res.json();
 
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+      if (!window.Razorpay) {
+        alert("Razorpay SDK not loaded. Please refresh.");
+        return;
+      }
+
+      const options = {
+        key: data.key,
+        amount: data.amount,
+        currency: data.currency,
+        name: "Tournament Payment",
+        description: "Entry Fee",
+        order_id: data.order_id,
+        handler: function (response) {
+          alert("✅ Payment Successful!");
+          const normalizedType = type.toLowerCase().replace(/\s/g, "");
+          navigate(`/join-tournament/${normalizedType}/${id}`);
+        },
+        prefill: {
+          name: "Player",
+          email: auth.currentUser?.email || "",
+        },
+        theme: { color: "#1e3a8a" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      console.error("Payment error:", error);
+      alert("❌ Payment failed. Try again later.");
+    }
   };
 
   const toggleCard = (index) => {
@@ -232,7 +245,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* 🔥 Popup Modal */}
       {showPopup && popupImage && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
           <div className="bg-white rounded shadow-lg p-4 max-w-xs w-full relative">
