@@ -23,13 +23,15 @@ function Register() {
         await setDoc(doc(db, "users", user.uid), {
           email: user.email,
           role: "user",
+          popupShown: false,   // ✅ Show popup only once
+          disabled: false,     // ✅ Default status
         });
         navigate("/dashboard");
       } catch (firestoreError) {
         console.error("❌ Firestore Error:", firestoreError.message);
         setError("User created, but failed to save in database.");
       }
-      
+
     } catch (authError) {
       if (authError.code === "auth/email-already-in-use") {
         setError("This email is already registered. Try logging in.");
