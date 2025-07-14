@@ -20,7 +20,7 @@ function AddTeam() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [existingTeamId, setExistingTeamId] = useState(null);
-  const [teamLocked, setTeamLocked] = useState(false); // 🔒 Team name edit lock
+  const [isTeamJoinedTournament, setIsTeamJoinedTournament] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,30 +28,25 @@ function AddTeam() {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
 
-      const userId = currentUser.uid;
-
-      // ✅ Check if user already joined a tournament
-      const joinedQuery = query(
-        collection(db, "tournament_joined"),
-        where("userId", "==", userId)
-      );
-      const joinedSnap = await getDocs(joinedQuery);
-      if (!joinedSnap.empty) {
-        setTeamLocked(true); // 🚫 Lock team name editing
-      }
-
-      // ✅ Fetch existing team
-      const teamQuery = query(
+      const q = query(
         collection(db, "teams"),
         where("leaderEmail", "==", currentUser.email)
       );
-      const teamSnap = await getDocs(teamQuery);
-      if (!teamSnap.empty) {
-        const docData = teamSnap.docs[0];
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const docData = snap.docs[0];
         setExistingTeamId(docData.id);
         const data = docData.data();
         setTeamName(data.teamName || "");
         setPlayers(data.players || [""]);
+
+        // ✅ Check if user already joined any tournament
+        const joinQ = query(
+          collection(db, "tournament_joined"),
+          where("userId", "==", currentUser.uid)
+        );
+        const joinedSnap = await getDocs(joinQ);
+        setIsTeamJoinedTournament(!joinedSnap.empty);
       }
     };
 
@@ -139,7 +134,7 @@ function AddTeam() {
           value={teamName}
           onChange={(e) => setTeamName(e.target.value)}
           required
-          disabled={teamLocked} // 🔒 lock input
+          disabled={isTeamJoinedTournament}
         />
 
         <div className="space-y-2">
@@ -181,9 +176,7 @@ function AddTeam() {
         {message && (
           <p
             className={`text-sm ${
-              message.includes("✅")
-                ? "text-green-600"
-                : "text-red-500"
+              message.includes("✅") ? "text-green-600" : "text-red-500"
             }`}
           >
             {message}
