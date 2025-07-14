@@ -5,8 +5,11 @@ import {
   collection,
   doc,
   onSnapshot,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
-import { db } from "../firebase/config";
+import { db, auth } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
 import "./dashboard.css";
 
@@ -17,9 +20,28 @@ const Dashboard = () => {
     daily: "inactive",
     weekly: "inactive",
   });
+  const [teamExists, setTeamExists] = useState(false);
+
   const navigate = useNavigate();
 
-  // ✅ Listen for Tournament Status changes (Live)
+  // ✅ Check if user's team exists
+  useEffect(() => {
+    const checkTeam = async () => {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+
+      const q = query(
+        collection(db, "teams"),
+        where("leaderEmail", "==", currentUser.email)
+      );
+      const snap = await getDocs(q);
+      setTeamExists(!snap.empty);
+    };
+
+    checkTeam();
+  }, []);
+
+  // ✅ Listen for Tournament Status
   useEffect(() => {
     const unsubDaily = onSnapshot(doc(db, "tournament_status", "daily_status"), (snap) => {
       if (snap.exists()) {
@@ -39,7 +61,7 @@ const Dashboard = () => {
     };
   }, []);
 
-  // ✅ Listen for Games Data changes (Live)
+  // ✅ Listen for Games
   useEffect(() => {
     const dailyRef = collection(db, "games_daily");
     const weeklyRef = collection(db, "games_weekly");
@@ -128,21 +150,36 @@ const Dashboard = () => {
                       <p className="mb-4 text-gray-800">
                         {game.description || "No description provided."}
                       </p>
-                      <div className="btn-wrapper flex justify-center mt-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleJoin(game.type, game.id);
-                          }}
-                          className={`${
-                            isActive
-                              ? "bg-yellow-500 hover:bg-yellow-600"
-                              : "bg-gray-400 cursor-not-allowed"
-                          } text-white font-bold py-2 px-6 rounded transition duration-300`}
-                          disabled={!isActive}
-                        >
-                          Join Now
-                        </button>
+
+                      <div className="btn-wrapper flex flex-col justify-center items-center mt-4 gap-2">
+                        {!teamExists ? (
+                          <>
+                            <p className="text-sm text-red-600 font-medium">
+                              ⚠️ Please add your team first.
+                            </p>
+                            <button
+                              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded"
+                              onClick={() => navigate("/add-team")}
+                            >
+                              Add Team
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleJoin(game.type, game.id);
+                            }}
+                            className={`${
+                              isActive
+                                ? "bg-yellow-500 hover:bg-yellow-600"
+                                : "bg-gray-400 cursor-not-allowed"
+                            } text-white font-bold py-2 px-6 rounded transition duration-300`}
+                            disabled={!isActive}
+                          >
+                            Join Now
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
