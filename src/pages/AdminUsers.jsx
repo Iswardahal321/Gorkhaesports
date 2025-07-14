@@ -17,6 +17,7 @@ function AdminUsers() {
   const [modalOpen, setModalOpen] = useState(false);
   const [search, setSearch] = useState("");
 
+  // Fetch users from Firestore
   const fetchUsers = async () => {
     const usersSnapshot = await getDocs(collection(db, "users"));
     const userList = usersSnapshot.docs.map((doc) => ({
@@ -31,9 +32,11 @@ function AdminUsers() {
     fetchUsers();
   }, []);
 
+  // Delete user and associated data
   const handleDelete = async (uid, email) => {
-    if (email === "junmain8@gmail.com") return;
+    if (email === "junmain8@gmail.com") return; // Prevent deleting the owner account
     if (!window.confirm(`Are you sure to delete ${email} and all related data?`)) return;
+
     try {
       const teamQuery = query(collection(db, "teams"), where("leaderEmail", "==", email));
       const teamSnap = await getDocs(teamQuery);
@@ -52,15 +55,17 @@ function AdminUsers() {
     }
   };
 
+  // Open modal to view/edit user details
   const openModal = (user) => {
     setSelectedUser({ ...user });
     setModalOpen(true);
   };
 
+  // Save updated user details
   const handleModalSave = async () => {
     if (selectedUser.email === "junmain8@gmail.com") {
       alert("❌ Cannot update owner account.");
-      return;
+      return; // Prevent updating the owner account
     }
 
     try {
@@ -75,6 +80,7 @@ function AdminUsers() {
     }
   };
 
+  // Filter users by UID search
   const filteredUsers = users.filter((user) =>
     user.id.toLowerCase().includes(search.toLowerCase())
   );
@@ -134,7 +140,7 @@ function AdminUsers() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal to edit user */}
       {modalOpen && selectedUser && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white p-6 rounded shadow-md w-full max-w-sm">
@@ -168,7 +174,7 @@ function AdminUsers() {
                     setSelectedUser({ ...selectedUser, role: e.target.value })
                   }
                   className="w-full border rounded px-2 py-1"
-                  disabled={selectedUser.email === "junmain8@gmail.com"}
+                  disabled={selectedUser.email === "junmain8@gmail.com"} // Disable for owner account
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
@@ -186,7 +192,7 @@ function AdminUsers() {
                     })
                   }
                   className="w-full border rounded px-2 py-1"
-                  disabled={selectedUser.email === "junmain8@gmail.com"}
+                  disabled={selectedUser.email === "junmain8@gmail.com"} // Disable for owner account
                 >
                   <option value="enabled">Enabled</option>
                   <option value="disabled">Disabled</option>
@@ -207,7 +213,7 @@ function AdminUsers() {
                       ? "bg-gray-300 cursor-not-allowed"
                       : "bg-green-600"
                   } text-white px-4 py-1 rounded`}
-                  disabled={selectedUser.email === "junmain8@gmail.com"}
+                  disabled={selectedUser.email === "junmain8@gmail.com"} // Disable save for owner account
                 >
                   Save
                 </button>
