@@ -5,8 +5,6 @@ import {
   collection,
   doc,
   onSnapshot,
-  getDoc,
-  getDocs,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useNavigate } from "react-router-dom";
@@ -21,7 +19,7 @@ const Dashboard = () => {
   });
   const navigate = useNavigate();
 
-  // ✅ Fetch Live Tournament Status
+  // ✅ Listen for Tournament Status changes (Live)
   useEffect(() => {
     const unsubDaily = onSnapshot(doc(db, "tournament_status", "daily_status"), (snap) => {
       if (snap.exists()) {
@@ -41,36 +39,43 @@ const Dashboard = () => {
     };
   }, []);
 
-  // ✅ Fetch Tournament Details
+  // ✅ Listen for Games Data changes (Live)
   useEffect(() => {
-    const fetchTournaments = async () => {
-      try {
-        const dailySnap = await getDocs(collection(db, "games_daily"));
-        const weeklySnap = await getDocs(collection(db, "games_weekly"));
+    const dailyRef = collection(db, "games_daily");
+    const weeklyRef = collection(db, "games_weekly");
 
-        const dailyData = dailySnap.docs.map((doc) => ({
-          id: doc.id,
-          type: "Daily Scrim",
-          collectionType: "daily",
-          ...doc.data(),
-        }));
+    const unsubDaily = onSnapshot(dailyRef, (snap) => {
+      const dailyData = snap.docs.map((doc) => ({
+        id: doc.id,
+        type: "Daily Scrim",
+        collectionType: "daily",
+        ...doc.data(),
+      }));
+      setTournaments((prev) => {
+        const filtered = prev.filter((g) => g.collectionType !== "daily");
+        return [...filtered, ...dailyData];
+      });
+      setLoading(false);
+    });
 
-        const weeklyData = weeklySnap.docs.map((doc) => ({
-          id: doc.id,
-          type: "Weekly War",
-          collectionType: "weekly",
-          ...doc.data(),
-        }));
+    const unsubWeekly = onSnapshot(weeklyRef, (snap) => {
+      const weeklyData = snap.docs.map((doc) => ({
+        id: doc.id,
+        type: "Weekly War",
+        collectionType: "weekly",
+        ...doc.data(),
+      }));
+      setTournaments((prev) => {
+        const filtered = prev.filter((g) => g.collectionType !== "weekly");
+        return [...filtered, ...weeklyData];
+      });
+      setLoading(false);
+    });
 
-        setTournaments([...dailyData, ...weeklyData]);
-      } catch (error) {
-        console.error("❌ Error fetching tournaments:", error);
-      } finally {
-        setLoading(false);
-      }
+    return () => {
+      unsubDaily();
+      unsubWeekly();
     };
-
-    fetchTournaments();
   }, []);
 
   const handleJoin = (type, id) => {
