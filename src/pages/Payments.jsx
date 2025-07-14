@@ -11,13 +11,13 @@ import { db } from "../firebase/config";
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
-  const [selectedType, setSelectedType] = useState("daily_scrim");
+  const [selectedType, setSelectedType] = useState("Weekly War");
   const [loading, setLoading] = useState(true);
 
   const fetchPayments = async (type) => {
     setLoading(true);
     try {
-      const q = query(collection(db, "teams"), where("type", "==", type));
+      const q = query(collection(db, "tournament_joins"), where("type", "==", type));
       const snapshot = await getDocs(q);
 
       const data = snapshot.docs.map((doc) => ({
@@ -36,7 +36,7 @@ const Payments = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this payment record?")) {
       try {
-        await deleteDoc(doc(db, "teams", id));
+        await deleteDoc(doc(db, "tournament_joins", id));
         setPayments((prev) => prev.filter((p) => p.id !== id));
       } catch (err) {
         console.error("❌ Error deleting:", err);
@@ -58,8 +58,8 @@ const Payments = () => {
           onChange={(e) => setSelectedType(e.target.value)}
           className="border p-2 rounded"
         >
-          <option value="daily_scrim">Daily Scrim</option>
-          <option value="weekly_war">Weekly War</option>
+          <option value="Daily Scrim">Daily Scrim</option>
+          <option value="Weekly War">Weekly War</option>
         </select>
       </div>
 
@@ -74,9 +74,12 @@ const Payments = () => {
               <tr className="bg-gray-200 text-left">
                 <th className="p-3">#</th>
                 <th className="p-3">User ID</th>
+                <th className="p-3">Email</th>
                 <th className="p-3">Payment ID</th>
-                <th className="p-3">Amount</th>
+                <th className="p-3">Fee</th>
                 <th className="p-3">Type</th>
+                <th className="p-3">Joined At</th>
+                <th className="p-3">Tournament ID</th>
                 <th className="p-3">Action</th>
               </tr>
             </thead>
@@ -85,9 +88,12 @@ const Payments = () => {
                 <tr key={payment.id} className="border-b hover:bg-gray-100">
                   <td className="p-3">{idx + 1}</td>
                   <td className="p-3">{payment.userId || "N/A"}</td>
+                  <td className="p-3">{payment.email || "N/A"}</td>
                   <td className="p-3">{payment.paymentId || "N/A"}</td>
-                  <td className="p-3">₹{payment.registrationFee || 0}</td>
+                  <td className="p-3">₹{payment.fee || 0}</td>
                   <td className="p-3">{payment.type}</td>
+                  <td className="p-3">{payment.joinedAt || "N/A"}</td>
+                  <td className="p-3">{payment.tournamentId || "N/A"}</td>
                   <td className="p-3">
                     <button
                       onClick={() => handleDelete(payment.id)}
