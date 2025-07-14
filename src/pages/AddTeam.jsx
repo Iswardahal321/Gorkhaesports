@@ -1,5 +1,3 @@
-// 📁 src/pages/AddTeam.jsx
-
 import React, { useState, useEffect } from "react";
 import {
   addDoc,
@@ -21,6 +19,7 @@ function AddTeam() {
   const [loading, setLoading] = useState(false);
   const [existingTeamId, setExistingTeamId] = useState(null);
   const [isTeamJoinedTournament, setIsTeamJoinedTournament] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,27 +27,27 @@ function AddTeam() {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
 
-      // ✅ Check team entry
-      const q = query(
+      const teamQuery = query(
         collection(db, "teams"),
         where("leaderEmail", "==", currentUser.email)
       );
-      const snap = await getDocs(q);
+      const snap = await getDocs(teamQuery);
+
       if (!snap.empty) {
         const docData = snap.docs[0];
         setExistingTeamId(docData.id);
         const data = docData.data();
         setTeamName(data.teamName || "");
         setPlayers(data.players || [""]);
-      }
 
-      // ✅ Check if joined tournament using `tournament_joins`
-      const joinedQuery = query(
-        collection(db, "tournament_joins"),
-        where("userId", "==", currentUser.uid)
-      );
-      const joinedSnap = await getDocs(joinedQuery);
-      setIsTeamJoinedTournament(!joinedSnap.empty);
+        // ✅ Check if user already joined any tournament
+        const joinedQuery = query(
+          collection(db, "tournament_joins"),
+          where("userId", "==", currentUser.uid)
+        );
+        const joinedSnap = await getDocs(joinedQuery);
+        setIsTeamJoinedTournament(!joinedSnap.empty);
+      }
     };
 
     fetchTeam();
@@ -127,16 +126,24 @@ function AddTeam() {
       <h2 className="text-2xl font-semibold mb-4">
         {existingTeamId ? "Update Your Team" : "Add Team"}
       </h2>
+
       <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
-        <input
-          type="text"
-          placeholder="Team Name"
-          className="border px-4 py-2 w-full"
-          value={teamName}
-          onChange={(e) => setTeamName(e.target.value)}
-          required
-          disabled={isTeamJoinedTournament}
-        />
+        <div>
+          <input
+            type="text"
+            placeholder="Team Name"
+            className="border px-4 py-2 w-full"
+            value={teamName}
+            onChange={(e) => setTeamName(e.target.value)}
+            required
+            disabled={isTeamJoinedTournament}
+          />
+          {isTeamJoinedTournament && (
+            <p className="text-sm text-red-500 mt-1">
+              🔒 Tournament is in progress, so you can't change the team name.
+            </p>
+          )}
+        </div>
 
         <div className="space-y-2">
           {players.map((player, index) => (
@@ -177,7 +184,9 @@ function AddTeam() {
         {message && (
           <p
             className={`text-sm ${
-              message.includes("✅") ? "text-green-600" : "text-red-500"
+              message.includes("✅")
+                ? "text-green-600"
+                : "text-red-500"
             }`}
           >
             {message}
