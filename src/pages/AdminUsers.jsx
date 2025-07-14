@@ -15,6 +15,7 @@ function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
   const fetchUsers = async () => {
     const usersSnapshot = await getDocs(collection(db, "users"));
@@ -31,11 +32,7 @@ function AdminUsers() {
   }, []);
 
   const handleDelete = async (uid, email) => {
-    if (email === "junmain8@gmail.com") {
-      alert("❌ You cannot delete the main owner account.");
-      return;
-    }
-
+    if (email === "junmain8@gmail.com") return;
     if (!window.confirm(`Are you sure to delete ${email} and all related data?`)) return;
     try {
       const teamQuery = query(collection(db, "teams"), where("leaderEmail", "==", email));
@@ -61,12 +58,12 @@ function AdminUsers() {
   };
 
   const handleModalSave = async () => {
-    try {
-      if (selectedUser.email === "junmain8@gmail.com") {
-        alert("❌ You cannot update the main owner account.");
-        return;
-      }
+    if (selectedUser.email === "junmain8@gmail.com") {
+      alert("❌ Cannot update owner account.");
+      return;
+    }
 
+    try {
       await updateDoc(doc(db, "users", selectedUser.id), {
         role: selectedUser.role,
         disabled: selectedUser.disabled,
@@ -78,9 +75,21 @@ function AdminUsers() {
     }
   };
 
+  const filteredUsers = users.filter((user) =>
+    user.id.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4 text-center">All Users</h2>
+
+      <input
+        type="text"
+        placeholder="Search by UID"
+        className="border px-3 py-2 mb-4 w-full max-w-sm"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
       {loading ? (
         <p>Loading...</p>
@@ -95,7 +104,7 @@ function AdminUsers() {
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {filteredUsers.map((u) => (
                 <tr key={u.id} className="text-center">
                   <td className="p-2 border">{u.id.slice(0, 8)}...</td>
                   <td className="p-2 border">{u.email || "N/A"}</td>
@@ -108,7 +117,12 @@ function AdminUsers() {
                     </button>
                     <button
                       onClick={() => handleDelete(u.id, u.email)}
-                      className="bg-red-500 text-white px-3 py-1 rounded text-xs"
+                      className={`${
+                        u.email === "junmain8@gmail.com"
+                          ? "bg-gray-300 cursor-not-allowed"
+                          : "bg-red-500"
+                      } text-white px-3 py-1 rounded text-xs`}
+                      disabled={u.email === "junmain8@gmail.com"}
                     >
                       Delete
                     </button>
@@ -188,7 +202,12 @@ function AdminUsers() {
                 </button>
                 <button
                   onClick={handleModalSave}
-                  className="bg-green-600 text-white px-4 py-1 rounded"
+                  className={`${
+                    selectedUser.email === "junmain8@gmail.com"
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-green-600"
+                  } text-white px-4 py-1 rounded`}
+                  disabled={selectedUser.email === "junmain8@gmail.com"}
                 >
                   Save
                 </button>
