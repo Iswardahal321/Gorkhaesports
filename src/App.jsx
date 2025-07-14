@@ -25,7 +25,7 @@ import AddGame from "./pages/AddGame.jsx";
 import AdminUsers from "./pages/AdminUsers.jsx";
 import UploadResult from "./pages/UploadResult.jsx";
 import AdminAddIDPass from "./pages/AdminAddIDPass.jsx"; // ✅ NEW import
-import PaymentDetails from "./pages/PaymentDetails.jsx"; // ✅ NEWLY ADDED PAGE
+import PaymentDetails from "./pages/Payments.jsx"; // ✅ NEWLY ADDED PAGE
 
 // ✅ Components
 import PrivateRoute from "./components/PrivateRoute.jsx";
@@ -184,7 +184,7 @@ function App() {
           element={
             <AdminRoute>
               <AdminLayout>
-                <PaymentDetails />
+                <Payments />
               </AdminLayout>
             </AdminRoute>
           }
