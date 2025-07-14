@@ -4,5 +4,11 @@
     "api/razorpay.js": {
       "runtime": "nodejs18.x"
     }
-  }
+  },
+  "builds": [
+    { "src": "api/razorpay.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1.js" }
+  ]
 }
