@@ -28,6 +28,7 @@ function AddTeam() {
       const currentUser = auth.currentUser;
       if (!currentUser) return;
 
+      // ✅ Check team entry
       const q = query(
         collection(db, "teams"),
         where("leaderEmail", "==", currentUser.email)
@@ -39,15 +40,15 @@ function AddTeam() {
         const data = docData.data();
         setTeamName(data.teamName || "");
         setPlayers(data.players || [""]);
-
-        // ✅ Check if user already joined any tournament
-        const joinQ = query(
-          collection(db, "tournament_joined"),
-          where("userId", "==", currentUser.uid)
-        );
-        const joinedSnap = await getDocs(joinQ);
-        setIsTeamJoinedTournament(!joinedSnap.empty);
       }
+
+      // ✅ Check if joined tournament using `tournament_joins`
+      const joinedQuery = query(
+        collection(db, "tournament_joins"),
+        where("userId", "==", currentUser.uid)
+      );
+      const joinedSnap = await getDocs(joinedQuery);
+      setIsTeamJoinedTournament(!joinedSnap.empty);
     };
 
     fetchTeam();
