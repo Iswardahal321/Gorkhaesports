@@ -15,11 +15,13 @@ function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const OWNER_EMAIL = "junmain8@gmail.com";
 
   const fetchUsers = async () => {
     const usersSnapshot = await getDocs(collection(db, "users"));
-    const userList = usersSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const userList = usersSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
     setUsers(userList);
     setLoading(false);
   };
@@ -29,6 +31,11 @@ function AdminUsers() {
   }, []);
 
   const handleDelete = async (uid, email) => {
+    if (email === "junmain8@gmail.com") {
+      alert("❌ You cannot delete the main owner account.");
+      return;
+    }
+
     if (!window.confirm(`Are you sure to delete ${email} and all related data?`)) return;
     try {
       const teamQuery = query(collection(db, "teams"), where("leaderEmail", "==", email));
@@ -41,7 +48,7 @@ function AdminUsers() {
 
       await deleteDoc(doc(db, "users", uid));
 
-      alert("User deleted successfully.");
+      alert("✅ User deleted successfully.");
       fetchUsers();
     } catch (err) {
       alert("❌ Failed to delete user.");
@@ -49,13 +56,17 @@ function AdminUsers() {
   };
 
   const openModal = (user) => {
-    if (user.email === OWNER_EMAIL) return; // 🔒 Owner is protected
     setSelectedUser({ ...user });
     setModalOpen(true);
   };
 
   const handleModalSave = async () => {
     try {
+      if (selectedUser.email === "junmain8@gmail.com") {
+        alert("❌ You cannot update the main owner account.");
+        return;
+      }
+
       await updateDoc(doc(db, "users", selectedUser.id), {
         role: selectedUser.role,
         disabled: selectedUser.disabled,
@@ -74,47 +85,39 @@ function AdminUsers() {
       {loading ? (
         <p>Loading...</p>
       ) : (
-        <table className="w-full border text-sm">
-          <thead className="bg-gray-200 text-xs">
-            <tr>
-              <th className="p-2 border">UID (short)</th>
-              <th className="p-2 border">Email</th>
-              <th className="p-2 border">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="text-center">
-                <td className="p-2 border">{u.id.slice(0, 8)}...</td>
-                <td className="p-2 border">{u.email || "N/A"}</td>
-                <td className="p-2 border flex justify-center gap-3">
-                  <button
-                    disabled={u.email === OWNER_EMAIL}
-                    onClick={() => openModal(u)}
-                    className={`px-3 py-1 rounded text-xs ${
-                      u.email === OWNER_EMAIL
-                        ? "bg-gray-400 cursor-not-allowed text-white"
-                        : "bg-blue-500 text-white"
-                    }`}
-                  >
-                    View
-                  </button>
-                  <button
-                    disabled={u.email === OWNER_EMAIL}
-                    onClick={() => handleDelete(u.id, u.email)}
-                    className={`px-3 py-1 rounded text-xs ${
-                      u.email === OWNER_EMAIL
-                        ? "bg-gray-400 cursor-not-allowed text-white"
-                        : "bg-red-500 text-white"
-                    }`}
-                  >
-                    Delete
-                  </button>
-                </td>
+        <div className="overflow-auto max-h-[500px]">
+          <table className="min-w-[600px] w-full border text-sm">
+            <thead className="bg-gray-200 text-xs">
+              <tr>
+                <th className="p-2 border">UID (short)</th>
+                <th className="p-2 border">Email</th>
+                <th className="p-2 border">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id} className="text-center">
+                  <td className="p-2 border">{u.id.slice(0, 8)}...</td>
+                  <td className="p-2 border">{u.email || "N/A"}</td>
+                  <td className="p-2 border flex justify-center gap-3">
+                    <button
+                      onClick={() => openModal(u)}
+                      className="bg-blue-500 text-white px-3 py-1 rounded text-xs"
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleDelete(u.id, u.email)}
+                      className="bg-red-500 text-white px-3 py-1 rounded text-xs"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {/* Modal */}
@@ -151,6 +154,7 @@ function AdminUsers() {
                     setSelectedUser({ ...selectedUser, role: e.target.value })
                   }
                   className="w-full border rounded px-2 py-1"
+                  disabled={selectedUser.email === "junmain8@gmail.com"}
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
@@ -168,6 +172,7 @@ function AdminUsers() {
                     })
                   }
                   className="w-full border rounded px-2 py-1"
+                  disabled={selectedUser.email === "junmain8@gmail.com"}
                 >
                   <option value="enabled">Enabled</option>
                   <option value="disabled">Disabled</option>
