@@ -10,7 +10,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
-import { loadScript } from "../utils/loadScript"; // ✅ This should dynamically load Razorpay script
+import { loadScript } from "../utils/loadScript";
 
 const JoinTournament = () => {
   const { id } = useParams();
@@ -69,30 +69,36 @@ const JoinTournament = () => {
   }, [id]);
 
   const handlePayment = async () => {
-    const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
-    if (!res) {
-      showMessage("❌ Razorpay SDK failed to load. Check your internet.", "error");
-      return;
-    }
+    const loaded = await loadScript("https://checkout.razorpay.com/v1/checkout.js");
+    if (!loaded) return showMessage("❌ Razorpay SDK failed to load.", "error");
 
     const user = auth.currentUser;
-    if (!user) {
-      showMessage("❌ You must be logged in.", "error");
-      return;
-    }
+    if (!user || !tournament) return;
+
+    // 🔸 Create Order on Server
+    const res = await fetch("/api/createOrder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount: tournament.entryFee * 100 }),
+    });
+
+    const orderData = await res.json();
 
     const options = {
-      key: "rzp_test_AvXRP4rfovLSun", // 🔁 Replace with LIVE KEY later: rzp_live_XXXX
-      amount: tournament.entryFee * 100,
+      key: "rzp_test_AvXRP4rfovLSun", // 🔁 Replace with LIVE key later
+      amount: orderData.amount,
       currency: "INR",
       name: "Gorkha Esports",
       description: tournament.name,
+      order_id: orderData.id, // ✅ Razorpay Order ID
       handler: async function (response) {
         await addDoc(collection(db, "tournament_joins"), {
           tournamentId: tournament.id,
           userId: user.uid,
           email: user.email,
           paymentId: response.razorpay_payment_id,
+          orderId: response.razorpay_order_id,
+          signature: response.razorpay_signature,
           type: tournament.type,
           fee: tournament.entryFee,
           joinedAt: new Date(),
@@ -102,7 +108,7 @@ const JoinTournament = () => {
           type: tournament.type,
           fee: tournament.entryFee,
         });
-        showMessage("✅ Payment successful & joined!", "success");
+        showMessage("✅ Payment success & joined!", "success");
       },
       prefill: {
         name: user.displayName || "Player",
@@ -130,22 +136,16 @@ const JoinTournament = () => {
       <p className="text-gray-700 mb-4">💰 Entry Fee: ₹{tournament.entryFee}</p>
 
       {message && (
-        <div
-          className={`mb-4 px-4 py-2 rounded ${
-            message.type === "success"
-              ? "bg-green-100 text-green-700"
-              : "bg-red-100 text-red-700"
-          }`}
-        >
+        <div className={`mb-4 px-4 py-2 rounded ${message.type === "success"
+            ? "bg-green-100 text-green-700"
+            : "bg-red-100 text-red-700"}`}>
           {message.text}
         </div>
       )}
 
       {joinInfo ? (
         <div className="p-4 bg-green-100 rounded">
-          <h3 className="text-lg font-semibold text-green-700 mb-2">
-            🎫 Payment Details
-          </h3>
+          <h3 className="text-lg font-semibold text-green-700 mb-2">🎫 Payment Details</h3>
           <p className="text-sm">🆔 Payment ID: {joinInfo.paymentId}</p>
           <p className="text-sm">🎮 Type: {joinInfo.type}</p>
           <p className="text-sm">💰 Paid: ₹{joinInfo.fee}</p>
