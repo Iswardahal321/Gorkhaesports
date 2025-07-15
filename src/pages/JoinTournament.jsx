@@ -10,6 +10,7 @@ import {
   query,
   where,
   getDocs,
+  updateDoc,
 } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
 import { loadScript } from "../utils/loadScript";
@@ -83,7 +84,6 @@ const JoinTournament = () => {
       return;
     }
 
-    // 🔁 Create order from API
     const orderRes = await fetch("/api/createOrder", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -96,44 +96,48 @@ const JoinTournament = () => {
       return;
     }
 
-    const options = {
-  key: "rzp_test_gYtWdi1vpxeR7f", // Replace with live key later
-  amount: orderData.amount,
-  currency: "INR",
-  name: "Gorkha Esports",
-  description: tournament.name,
-  order_id: orderData.id,
-
-  handler: async function (response) {
-    console.log("🔁 Razorpay Response:", response); // ✅ Yeh line yahan daalni hai
-
-    await addDoc(collection(db, "tournament_joins"), {
+    const preJoinRef = await addDoc(collection(db, "tournament_joins"), {
       tournamentId: tournament.id,
       userId: user.uid,
       email: user.email,
-      paymentId: response.razorpay_payment_id,
-      orderId: response.razorpay_order_id,
+      orderId: orderData.id,
+      status: "pending",
       type: tournament.type,
       fee: tournament.entryFee,
-      joinedAt: new Date(),
+      createdAt: new Date(),
     });
 
-    setJoinInfo({
-      paymentId: response.razorpay_payment_id,
-      orderId: response.razorpay_order_id,
-      type: tournament.type,
-      fee: tournament.entryFee,
-    });
+    const options = {
+      key: "rzp_test_gYtWdi1vpxeR7f", // replace with live key later
+      amount: orderData.amount,
+      currency: "INR",
+      name: "Gorkha Esports",
+      description: tournament.name,
+      order_id: orderData.id,
+      handler: async function (response) {
+        console.log("🔁 Razorpay Response:", response);
+        await updateDoc(preJoinRef, {
+          paymentId: response.razorpay_payment_id,
+          orderId: response.razorpay_order_id,
+          status: "paid",
+          joinedAt: new Date(),
+        });
 
-    showMessage("✅ Payment successful & joined!", "success");
-  },
+        setJoinInfo({
+          paymentId: response.razorpay_payment_id,
+          orderId: response.razorpay_order_id,
+          type: tournament.type,
+          fee: tournament.entryFee,
+        });
 
-  prefill: {
-    name: user.displayName || "Player",
-    email: user.email,
-  },
-  theme: { color: "#3399cc" },
-};
+        showMessage("✅ Payment successful & joined!", "success");
+      },
+      prefill: {
+        name: user.displayName || "Player",
+        email: user.email,
+      },
+      theme: { color: "#3399cc" },
+    };
 
     const rzp = new window.Razorpay(options);
     rzp.open();
