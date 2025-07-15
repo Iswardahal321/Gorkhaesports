@@ -1,5 +1,3 @@
-// 📁 src/pages/JoinTournament.jsx
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -10,11 +8,9 @@ import {
   query,
   where,
   getDocs,
-  updateDoc,
 } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
 import { loadScript } from "../utils/loadScript";
-
 
 const JoinTournament = () => {
   const { id } = useParams();
@@ -97,49 +93,52 @@ const JoinTournament = () => {
       return;
     }
 
-    const preJoinRef = await addDoc(collection(db, "tournament_joins"), {
-      tournamentId: tournament.id,
-      userId: user.uid,
-      email: user.email,
-      orderId: orderData.id,
-      status: "pending",
-      type: tournament.type,
-      fee: tournament.entryFee,
-      createdAt: new Date(),
-    });
+    const options = {
+      key: "rzp_test_gYtWdi1vpxeR7f", // 🟡 Replace with LIVE key in prod
+      amount: orderData.amount,
+      currency: "INR",
+      name: "Gorkha Esports",
+      description: tournament.name,
+      order_id: orderData.id,
 
-    handler: async function (response) {
-  console.log("🔁 Razorpay Response:", response);
+      handler: async function (response) {
+        console.log("🔁 Razorpay Response:", response);
 
-  // ✅ Screen pe dikhane ke liye
-  setMessage({
-    text: `
-      ✅ Payment Successful! <br/>
-      🆔 Payment ID: ${response.razorpay_payment_id}<br/>
-      📦 Order ID: ${response.razorpay_order_id || "Not returned"}<br/>
-      🔐 Signature: ${response.razorpay_signature || "Not returned"}
-    `,
-    type: "success",
-  });
+        setMessage({
+          text: `
+            ✅ Payment Successful! <br/>
+            🆔 Payment ID: ${response.razorpay_payment_id}<br/>
+            📦 Order ID: ${response.razorpay_order_id || "Not returned"}<br/>
+            🔐 Signature: ${response.razorpay_signature || "Not returned"}
+          `,
+          type: "success",
+        });
 
-  await addDoc(collection(db, "tournament_joins"), {
-    tournamentId: tournament.id,
-    userId: user.uid,
-    email: user.email,
-    paymentId: response.razorpay_payment_id,
-    orderId: response.razorpay_order_id,
-    type: tournament.type,
-    fee: tournament.entryFee,
-    joinedAt: new Date(),
-  });
+        await addDoc(collection(db, "tournament_joins"), {
+          tournamentId: tournament.id,
+          userId: user.uid,
+          email: user.email,
+          paymentId: response.razorpay_payment_id,
+          orderId: response.razorpay_order_id,
+          type: tournament.type,
+          fee: tournament.entryFee,
+          joinedAt: new Date(),
+        });
 
-  setJoinInfo({
-    paymentId: response.razorpay_payment_id,
-    orderId: response.razorpay_order_id,
-    type: tournament.type,
-    fee: tournament.entryFee,
-  });
-}
+        setJoinInfo({
+          paymentId: response.razorpay_payment_id,
+          orderId: response.razorpay_order_id,
+          type: tournament.type,
+          fee: tournament.entryFee,
+        });
+      },
+
+      prefill: {
+        name: user.displayName || "Player",
+        email: user.email,
+      },
+      theme: { color: "#3399cc" },
+    };
 
     const rzp = new window.Razorpay(options);
     rzp.open();
@@ -147,7 +146,7 @@ const JoinTournament = () => {
 
   const showMessage = (text, type) => {
     setMessage({ text, type });
-    setTimeout(() => setMessage(null), 3000);
+    setTimeout(() => setMessage(null), 5000);
   };
 
   if (loading) return <p className="text-center mt-10">⏳ Loading...</p>;
@@ -161,14 +160,13 @@ const JoinTournament = () => {
 
       {message && (
         <div
-          className={`mb-4 px-4 py-2 rounded ${
+          className={`mb-4 px-4 py-2 rounded text-sm ${
             message.type === "success"
               ? "bg-green-100 text-green-700"
               : "bg-red-100 text-red-700"
           }`}
-        >
-          {message.text}
-        </div>
+          dangerouslySetInnerHTML={{ __html: message.text }}
+        ></div>
       )}
 
       {joinInfo ? (
