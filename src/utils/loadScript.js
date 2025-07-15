@@ -1,6 +1,4 @@
-// 📁 src/utils/loadScript.js
-
-export const loadScript = (src) => {
+export function loadScript(src) {
   return new Promise((resolve) => {
     const script = document.createElement("script");
     script.src = src;
@@ -8,4 +6,4 @@ export const loadScript = (src) => {
     script.onerror = () => resolve(false);
     document.body.appendChild(script);
   });
-};
+}
