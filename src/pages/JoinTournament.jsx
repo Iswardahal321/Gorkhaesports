@@ -15,6 +15,7 @@ import {
 import { db, auth } from "../firebase/config";
 import { loadScript } from "../utils/loadScript";
 
+
 const JoinTournament = () => {
   const { id } = useParams();
   const navigate = useNavigate();
