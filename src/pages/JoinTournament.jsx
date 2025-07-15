@@ -94,7 +94,7 @@ const JoinTournament = () => {
     }
 
     const options = {
-      key: "rzp_test_gYtWdi1vpxeR7f", // 🟡 Replace with LIVE key in prod
+      key: "rzp_test_gYtWdi1vpxeR7f",
       amount: orderData.amount,
       currency: "INR",
       name: "Gorkha Esports",
@@ -119,15 +119,16 @@ const JoinTournament = () => {
           userId: user.uid,
           email: user.email,
           paymentId: response.razorpay_payment_id,
-          orderId: response.razorpay_order_id,
+          orderId: response.razorpay_order_id || "Not returned",
           type: tournament.type,
           fee: tournament.entryFee,
           joinedAt: new Date(),
+          status: "success",
         });
 
         setJoinInfo({
           paymentId: response.razorpay_payment_id,
-          orderId: response.razorpay_order_id,
+          orderId: response.razorpay_order_id || "Not returned",
           type: tournament.type,
           fee: tournament.entryFee,
         });
